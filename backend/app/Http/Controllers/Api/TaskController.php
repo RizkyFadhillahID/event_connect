@@ -297,14 +297,18 @@ class TaskController extends Controller
                 return $t;
             });
 
+        $total     = $tasks->count();
+        $completed = $tasks->where('status', 'completed')->count();
+
         $stats = [
-            'total'       => $tasks->count(),
+            'total'       => $total,
             'pending'     => $tasks->where('status', 'pending')->count(),
             'in_progress' => $tasks->where('status', 'in_progress')->count(),
             'review'      => $tasks->where('status', 'review')->count(),
-            'completed'   => $tasks->where('status', 'completed')->count(),
+            'completed'   => $completed,
             'cancelled'   => $tasks->where('status', 'cancelled')->count(),
             'overdue'     => $tasks->filter(fn($t) => $t->is_overdue)->count(),
+            'progress'    => $total > 0 ? (int) round($completed / $total * 100) : 0,
         ];
 
         return response()->json(compact('tasks', 'stats'));
