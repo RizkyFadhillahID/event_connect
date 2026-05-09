@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\RundownController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
@@ -54,4 +55,25 @@ Route::middleware('auth:sanctum')->group(function () {
     // Event-scoped task routes (used in event detail panel)
     Route::get('events/{event}/tasks', [TaskController::class, 'eventTasks']);
     Route::get('events/{event}/personnel', [TaskController::class, 'eventPersonnel']);
+
+    // ---------------------------------------------------------------
+    // Event Timeline & Rundown System
+    // ---------------------------------------------------------------
+
+    // Event-scoped rundown routes
+    Route::get('events/{event}/rundowns', [RundownController::class, 'index']);
+    Route::post('events/{event}/rundowns', [RundownController::class, 'store']);
+    Route::get('events/{event}/rundown-dates', [RundownController::class, 'eventDates']);
+    Route::get('events/{event}/rundown-stats', [RundownController::class, 'eventStats']);
+
+    // Single rundown item operations
+    Route::get('rundowns/{rundown}', [RundownController::class, 'show']);
+    Route::put('rundowns/{rundown}', [RundownController::class, 'update']);
+    Route::patch('rundowns/{rundown}/status', [RundownController::class, 'updateStatus']);
+    Route::delete('rundowns/{rundown}', [RundownController::class, 'destroy']);
+    Route::get('rundowns/{rundown}/logs', [RundownController::class, 'logs']);
+
+    // Dependency management
+    Route::post('rundowns/{rundown}/dependencies', [RundownController::class, 'addDependency']);
+    Route::delete('rundowns/{rundown}/dependencies/{task}', [RundownController::class, 'removeDependency']);
 });

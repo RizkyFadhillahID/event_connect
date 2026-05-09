@@ -400,6 +400,10 @@ function statusLabel2(s) {
 function statusLabel(s) { return statuses.find(x => x.value === s)?.label || s }
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' }
 function formatCurrency(v) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v) }
+function normalizeTimeInput(v) {
+  if (!v) return ''
+  return String(v).substring(0, 5)
+}
 
 function defaultForm() {
   return { name: '', description: '', location: '', start_date: '', end_date: '', start_time: '', end_time: '', status: 'draft', budget: '', category: '', expected_participants: '', personnel: [] }
@@ -419,6 +423,8 @@ async function fetchEvents(page = 1) {
         }).catch(() => { eventTaskCounts.value[ev.id] = 0 })
       }
     })
+  } catch (e) {
+    formError.value = e.response?.data?.message || 'Gagal memuat data event.'
   } finally {
     loading.value = false
   }
@@ -455,7 +461,7 @@ function openEdit(ev) {
   form.value = {
     name: ev.name, description: ev.description || '', location: ev.location,
     start_date: ev.start_date?.substring(0, 10) || '', end_date: ev.end_date?.substring(0, 10) || '',
-    start_time: ev.start_time || '', end_time: ev.end_time || '',
+    start_time: normalizeTimeInput(ev.start_time), end_time: normalizeTimeInput(ev.end_time),
     status: ev.status, budget: ev.budget || '', category: ev.category || '',
     expected_participants: ev.expected_participants || '',
     personnel: ev.personnel?.map(p => ({ user_id: p.id, role_in_event: p.pivot?.role_in_event || '' })) || [],
@@ -472,8 +478,20 @@ async function submitForm() {
   formError.value = ''
   submitting.value = true
   const payload = { ...form.value }
+  payload.start_time = normalizeTimeInput(payload.start_time)
+  payload.end_time = normalizeTimeInput(payload.end_time)
   if (!payload.budget) delete payload.budget
   if (!payload.expected_participants) delete payload.expected_participants
+  if (!payload.start_time) delete payload.start_time
+  if (!payload.end_time) delete payload.end_time
+
+  const selectedIds = payload.personnel.filter(p => p.user_id).map(p => String(p.user_id))
+  if (new Set(selectedIds).size !== selectedIds.length) {
+    formError.value = 'User personel tidak boleh duplikat dalam satu event.'
+    submitting.value = false
+    return
+  }
+
   payload.personnel = payload.personnel.filter(p => p.user_id)
   try {
     if (editId.value) {
@@ -498,7 +516,11 @@ async function doDelete() {
   try {
     await api.delete(`/events/${deleteTarget.value.id}`)
     deleteTarget.value = null
-    fetchEvents(pagination.value.current_page)
+    await fetchEvents(pagination.value.current_page)
+  } catch (e) {
+    const message = e.response?.data?.message || 'Gagal menghapus event.'
+    formError.value = message
+    window.alert(message)
   } finally {
     submitting.value = false
   }

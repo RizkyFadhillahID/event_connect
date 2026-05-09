@@ -50,6 +50,11 @@ class Event extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function rundowns()
+    {
+        return $this->hasMany(EventRundown::class);
+    }
+
     public function taskStats(): array
     {
         $counts = $this->tasks()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');

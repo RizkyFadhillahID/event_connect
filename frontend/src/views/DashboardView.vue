@@ -75,75 +75,13 @@
       </div>
     </div>
 
-    <!-- Bottom row -->
-    <div class="content-grid">
-      <!-- Role info / Quick access -->
-      <div class="glass-card content-card">
-        <div class="card-header">
-          <h3>Informasi Akses</h3>
-        </div>
-        <div class="role-info">
-          <div class="role-badge-lg">
-            <div class="role-avatar">{{ auth.user?.name?.charAt(0)?.toUpperCase() }}</div>
-            <div>
-              <div class="role-name">{{ auth.user?.name }}</div>
-              <div class="role-tag">{{ formatRole(auth.user?.role) }}</div>
-            </div>
-          </div>
-
-          <div class="permission-list">
-            <div class="perm-item" :class="{ active: auth.canManageUsers }">
-              <span class="perm-icon">
-                <Check v-if="auth.canManageUsers" :size="18" />
-                <Lock v-else :size="18" />
-              </span>
-              <span>Kelola Akun Pengguna</span>
-            </div>
-            <div class="perm-item" :class="{ active: auth.canManageEvents }">
-              <span class="perm-icon">
-                <Check v-if="auth.canManageEvents" :size="18" />
-                <Lock v-else :size="18" />
-              </span>
-              <span>Kelola Event (CRUD)</span>
-            </div>
-            <div class="perm-item active">
-              <span class="perm-icon">
-                <Check :size="18" />
-              </span>
-              <span>Lihat Data Event</span>
-            </div>
-            <div class="perm-item active">
-              <span class="perm-icon">
-                <Check :size="18" />
-              </span>
-              <span>Lihat Detail Event & Personel</span>
-            </div>
-          </div>
-
-          <div class="quick-links">
-            <RouterLink v-if="auth.canManageUsers" to="/users" class="btn btn-primary btn-sm">
-              <Users :size="16" />
-              Kelola User
-            </RouterLink>
-            <RouterLink to="/events" class="btn btn-glass btn-sm">
-              <Calendar :size="16" />
-              Lihat Event
-            </RouterLink>
-            <RouterLink to="/tasks" class="btn btn-glass btn-sm">
-              <CheckSquare :size="16" />
-              Task & Workflow
-            </RouterLink>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Calendar, Users, Check, Lock, ArrowRight, Loader2, BarChart3, Zap, CheckSquare } from 'lucide-vue-next'
+import { ArrowRight, Loader2, CheckSquare } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
 
@@ -157,26 +95,9 @@ const totalEvents = ref(0)
 const activeEvents = ref(0)
 const completedEvents = ref(0)
 
-const roleLabels = {
-  superadmin: 'Super Admin',
-  project_manager: 'Project Manager',
-  event_planner: 'Event Planner',
-  promotion_team: 'Promotion Team',
-  partnership_manager: 'Partnership Manager',
-  budgeting: 'Budgeting',
-  operations_team: 'Operations Team',
-  creative_team: 'Creative Team',
-  rundown_coordinator: 'Rundown Coordinator',
-  talent_coordinator: 'Talent Coordinator',
-  registration_guest_management: 'Registration & Guest Mgmt',
-  technical_team: 'Technical Team',
-  documentation_team: 'Documentation Team',
-  liaison_officer: 'Liaison Officer',
-}
 const statusLabels = { pending: 'Pending', in_progress: 'In Progress', review: 'Review', completed: 'Completed', cancelled: 'Cancelled' }
 function statusLabel(v) { return statusLabels[v] || v }
 
-function formatRole(role) { return roleLabels[role] || role }
 function formatDate(d) {
   if (!d) return '-'
   return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -292,32 +213,4 @@ onMounted(async () => {
 .ts-review      { background: rgba(245,158,11,0.2); color: #fcd34d; }
 .ts-completed   { background: rgba(16,185,129,0.2); color: #6ee7b7; }
 .ts-cancelled   { background: rgba(239,68,68,0.2);  color: #fca5a5; }
-
-.role-info { display: flex; flex-direction: column; gap: 20px; }
-.role-badge-lg { display: flex; align-items: center; gap: 14px; padding: 16px; background: rgba(255,255,255,0.06); border-radius: 14px; }
-.role-avatar {
-  width: 48px; height: 48px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 700; flex-shrink: 0;
-}
-.role-name { font-size: 15px; font-weight: 600; }
-.role-tag { font-size: 12px; color: #a5b4fc; margin-top: 4px; }
-
-.permission-list { display: flex; flex-direction: column; gap: 8px; }
-.perm-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  background: rgba(255,255,255,0.04);
-  color: var(--text-muted);
-}
-.perm-item.active { color: var(--text-primary); background: rgba(99,102,241,0.1); }
-.perm-icon { font-size: 16px; }
-
-.quick-links { display: flex; gap: 10px; flex-wrap: wrap; }
 </style>

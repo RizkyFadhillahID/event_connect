@@ -1,60 +1,163 @@
 <template>
   <div class="tasks-page">
-    <!-- Header -->
-    <div class="page-header glass-card">
-      <div class="header-left">
-        <h2>Task &amp; Workflow Management</h2>
-        <p>Koordinasi job desk dan progress kerja tim event</p>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 1: EVENT SELECTION SCREEN
+         Shown when no event is selected yet
+    ══════════════════════════════════════════════════════ -->
+    <template v-if="!selectedEvent">
+      <div class="page-header glass-card">
+        <div class="header-left">
+          <h2>Task &amp; Workflow Management</h2>
+          <p>Pilih event terlebih dahulu untuk mulai mengelola task</p>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <div class="view-toggle">
-          <button class="toggle-btn" :class="{ active: viewMode === 'kanban' }" @click="viewMode = 'kanban'" title="Kanban">
-            <LayoutGrid :size="18" />
-          </button>
-          <button class="toggle-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="List">
-            <List :size="18" />
+
+      <div class="event-search-bar glass-card">
+        <Search :size="16" style="color:rgba(255,255,255,0.4);flex-shrink:0" />
+        <input
+          v-model="eventSearch"
+          class="event-search-input"
+          placeholder="Cari nama event..."
+          @input="filterEvents"
+        />
+        <span v-if="loadingEvents" style="margin-left:auto">
+          <Loader2 :size="16" class="spinner-icon" style="color:rgba(255,255,255,0.4)" />
+        </span>
+      </div>
+
+      <div v-if="loadingEvents" class="loading-state glass-card">
+        <Loader2 :size="28" class="spinner-icon" />
+        <span>Memuat daftar event...</span>
+      </div>
+
+      <div v-else-if="!filteredEvents.length" class="empty-state glass-card">
+        <FolderOpen :size="48" style="opacity:0.3" />
+        <p>Tidak ada event yang tersedia.</p>
+      </div>
+
+      <div v-else class="event-grid">
+        <div
+          v-for="ev in filteredEvents"
+          :key="ev.id"
+          class="event-select-card glass-card"
+          @click="selectEvent(ev)"
+        >
+          <div class="esc-header">
+            <div class="esc-status-dot" :class="`dot-${ev.status}`"></div>
+            <span class="esc-status-label" :class="`badge-ev-${ev.status}`">{{ eventStatusLabel(ev.status) }}</span>
+          </div>
+          <h3 class="esc-title">{{ ev.name }}</h3>
+          <div class="esc-meta">
+            <span><MapPin :size="12" /> {{ ev.location }}</span>
+            <span><Calendar :size="12" /> {{ formatDate(ev.start_date) }}</span>
+          </div>
+          <div class="esc-stats" v-if="eventTaskCounts[ev.id]">
+            <div class="esc-stat">
+              <span class="esc-stat-num">{{ eventTaskCounts[ev.id].total }}</span>
+              <span class="esc-stat-lbl">Total</span>
+            </div>
+            <div class="esc-stat">
+              <span class="esc-stat-num" style="color:#67e8f9">{{ eventTaskCounts[ev.id].in_progress }}</span>
+              <span class="esc-stat-lbl">Aktif</span>
+            </div>
+            <div class="esc-stat">
+              <span class="esc-stat-num" style="color:#6ee7b7">{{ eventTaskCounts[ev.id].completed }}</span>
+              <span class="esc-stat-lbl">Selesai</span>
+            </div>
+            <div class="esc-stat" v-if="eventTaskCounts[ev.id].overdue > 0">
+              <span class="esc-stat-num" style="color:#fca5a5">{{ eventTaskCounts[ev.id].overdue }}</span>
+              <span class="esc-stat-lbl">Overdue</span>
+            </div>
+          </div>
+          <div class="esc-progress-wrap" v-if="eventTaskCounts[ev.id]?.total > 0">
+            <div class="esc-progress-bar">
+              <div class="esc-progress-fill" :style="`width:${eventTaskCounts[ev.id].progress}%`"></div>
+            </div>
+            <span class="esc-progress-pct">{{ eventTaskCounts[ev.id].progress }}%</span>
+          </div>
+          <div class="esc-cta">
+            <span>Kelola Task</span>
+            <ArrowRight :size="14" />
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 2: TASK MANAGEMENT SCREEN
+         Shown when event is selected
+    ══════════════════════════════════════════════════════ -->
+    <template v-else>
+
+      <!-- Context header: shows current event + change button -->
+      <div class="event-context-bar glass-card">
+        <button class="back-btn" @click="deselectEvent" title="Ganti Event">
+          <ArrowLeft :size="16" />
+        </button>
+        <div class="context-info">
+          <span class="context-label">Working on</span>
+          <h3 class="context-event-name">{{ selectedEvent.name }}</h3>
+        </div>
+        <div class="context-meta">
+          <span class="context-chip"><Calendar :size="12" /> {{ formatDate(selectedEvent.start_date) }}</span>
+          <span class="context-chip"><MapPin :size="12" /> {{ selectedEvent.location }}</span>
+          <span class="context-chip" :class="`chip-ev-${selectedEvent.status}`">{{ eventStatusLabel(selectedEvent.status) }}</span>
+        </div>
+        <div class="context-task-stats" v-if="eventStats">
+          <div class="ctx-stat"><span class="ctx-num">{{ eventStats.total }}</span><span class="ctx-lbl">Total</span></div>
+          <div class="ctx-stat"><span class="ctx-num in-prog">{{ eventStats.in_progress }}</span><span class="ctx-lbl">Aktif</span></div>
+          <div class="ctx-stat"><span class="ctx-num done">{{ eventStats.completed }}</span><span class="ctx-lbl">Selesai</span></div>
+          <div class="ctx-stat" v-if="eventStats.overdue > 0"><span class="ctx-num overdue-num">{{ eventStats.overdue }}</span><span class="ctx-lbl">Overdue</span></div>
+          <div class="ctx-progress">
+            <div class="ctx-bar"><div class="ctx-bar-fill" :style="`width:${eventStats.progress}%`"></div></div>
+            <span class="ctx-pct">{{ eventStats.progress }}%</span>
+          </div>
+        </div>
+        <div class="context-actions">
+          <div class="view-toggle">
+            <button class="toggle-btn" :class="{ active: viewMode === 'kanban' }" @click="viewMode = 'kanban'" title="Kanban">
+              <LayoutGrid :size="18" />
+            </button>
+            <button class="toggle-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="List">
+              <List :size="18" />
+            </button>
+          </div>
+          <button class="btn btn-primary" @click="openCreate">
+            <Plus :size="18" /> Tambah Task
           </button>
         </div>
-        <button class="btn btn-primary" @click="openCreate">
-          <Plus :size="18" />
-          Tambah Task
-        </button>
       </div>
-    </div>
 
-    <!-- Filters -->
-    <div class="filters glass-card">
-      <input v-model="filters.search" class="glass-input" placeholder="Cari task..." @input="debounceFetch" style="max-width:240px"/>
-      <select v-model="filters.event_id" class="glass-input" @change="fetchTasks()" style="max-width:200px">
-        <option value="">Semua Event</option>
-        <option v-for="ev in eventsList" :key="ev.id" :value="ev.id">{{ ev.name }}</option>
-      </select>
-      <select v-model="filters.priority" class="glass-input" @change="fetchTasks()" style="max-width:150px">
-        <option value="">Semua Prioritas</option>
-        <option v-for="p in priorities" :key="p.value" :value="p.value">{{ p.label }}</option>
-      </select>
-      <select v-model="filters.status" class="glass-input" @change="fetchTasks()" style="max-width:160px">
-        <option value="">Semua Status</option>
-        <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-      </select>
-      <label class="my-tasks-toggle">
-        <input type="checkbox" v-model="filters.my_tasks" @change="fetchTasks()" />
-        <span>Task Saya</span>
-      </label>
-      <label class="my-tasks-toggle" style="color:#fcd34d">
-        <input type="checkbox" v-model="filters.overdue" @change="fetchTasks()" />
-        <span>Overdue</span>
-      </label>
-    </div>
+      <!-- Filters (no event selector here) -->
+      <div class="filters glass-card">
+        <input v-model="filters.search" class="glass-input" placeholder="Cari task..." @input="debounceFetch" style="max-width:240px"/>
+        <select v-model="filters.priority" class="glass-input" @change="fetchTasks()" style="max-width:150px">
+          <option value="">Semua Prioritas</option>
+          <option v-for="p in priorities" :key="p.value" :value="p.value">{{ p.label }}</option>
+        </select>
+        <select v-model="filters.status" class="glass-input" @change="fetchTasks()" style="max-width:160px">
+          <option value="">Semua Status</option>
+          <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
+        </select>
+        <label class="my-tasks-toggle">
+          <input type="checkbox" v-model="filters.my_tasks" @change="fetchTasks()" />
+          <span>Task Saya</span>
+        </label>
+        <label class="my-tasks-toggle" style="color:#fcd34d">
+          <input type="checkbox" v-model="filters.overdue" @change="fetchTasks()" />
+          <span>Overdue</span>
+        </label>
+      </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="loading-state glass-card">
-      <Loader2 :size="28" class="spinner-icon" />
-      <span>Memuat task...</span>
-    </div>
+      <!-- Loading -->
+      <div v-if="loading" class="loading-state glass-card">
+        <Loader2 :size="28" class="spinner-icon" />
+        <span>Memuat task...</span>
+      </div>
 
-    <!-- Kanban View -->
-    <div v-else-if="viewMode === 'kanban'" class="kanban-board">
+      <!-- Kanban View -->
+      <div v-else-if="viewMode === 'kanban'" class="kanban-board">
       <div v-for="col in kanbanColumns" :key="col.status" class="kanban-col glass-card">
         <div class="col-header">
           <div class="col-title">
@@ -224,11 +327,8 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Event *</label>
-                <select v-model="form.event_id" class="glass-input" required @change="loadEventPersonnel">
-                  <option value="">Pilih Event</option>
-                  <option v-for="ev in eventsList" :key="ev.id" :value="ev.id">{{ ev.name }}</option>
-                </select>
+                <label>Event</label>
+                <div class="glass-input event-readonly-field">{{ selectedEvent?.name }}</div>
               </div>
               <div class="form-group">
                 <label>Kategori</label>
@@ -449,6 +549,7 @@
         </div>
       </div>
     </Transition>
+    </template>
   </div>
 </template>
 
@@ -459,41 +560,49 @@ import {
   Calendar, Clock, User, UserX, UserCheck, Tag, Link,
   ChevronLeft, ChevronRight, AlertCircle, CheckSquare,
   CheckCircle2, Circle, MessageSquare, Send, ClipboardList,
+  Search, FolderOpen, MapPin, ArrowRight, ArrowLeft,
 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
 
 const auth = useAuthStore()
 
-// ─── State ───────────────────────────────────────────────
-const viewMode    = ref('kanban')
-const tasks       = ref([])
-const loading     = ref(true)
-const submitting  = ref(false)
-const formError   = ref('')
-const showModal   = ref(false)
-const editId      = ref(null)
-const deleteTarget = ref(null)
-const detailTask  = ref(null)
-const comments    = ref([])
-const newComment  = ref('')
+// ─── Event Selection State ─────────────────────────────────
+const selectedEvent   = ref(null)
+const eventsList      = ref([])
+const eventSearch     = ref('')
+const filteredEvents  = ref([])
+const loadingEvents   = ref(false)
+const eventTaskCounts = ref({})
+const eventStats      = ref(null)
+
+// ─── Task Management State ─────────────────────────────────
+const viewMode       = ref('kanban')
+const tasks          = ref([])
+const loading        = ref(false)
+const submitting     = ref(false)
+const formError      = ref('')
+const showModal      = ref(false)
+const editId         = ref(null)
+const deleteTarget   = ref(null)
+const detailTask     = ref(null)
+const comments       = ref([])
+const newComment     = ref('')
 const sendingComment = ref(false)
-const commentsList = ref(null)
-const pagination  = ref({ current_page: 1, last_page: 1, per_page: 20 })
-const eventsList  = ref([])
-const personnelList   = ref([])
+const commentsList   = ref(null)
+const pagination     = ref({ current_page: 1, last_page: 1, per_page: 20 })
+const personnelList  = ref([])
 const parentableTasksList = ref([])
 
 const filters = ref({
-  search: '',
-  event_id: '',
+  search:   '',
   priority: '',
-  status: '',
+  status:   '',
   my_tasks: false,
-  overdue: false,
+  overdue:  false,
 })
 
-// ─── Constants ───────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────
 const priorities = [
   { value: 'urgent', label: 'Urgent',  color: '#ef4444' },
   { value: 'high',   label: 'High',    color: '#f59e0b' },
@@ -502,11 +611,11 @@ const priorities = [
 ]
 
 const statuses = [
-  { value: 'pending',     label: 'Pending',      color: '#6b7280' },
-  { value: 'in_progress', label: 'In Progress',   color: '#06b6d4' },
-  { value: 'review',      label: 'Review',        color: '#f59e0b' },
-  { value: 'completed',   label: 'Completed',     color: '#10b981' },
-  { value: 'cancelled',   label: 'Cancelled',     color: '#ef4444' },
+  { value: 'pending',     label: 'Pending',     color: '#6b7280' },
+  { value: 'in_progress', label: 'In Progress', color: '#06b6d4' },
+  { value: 'review',      label: 'Review',      color: '#f59e0b' },
+  { value: 'completed',   label: 'Completed',   color: '#10b981' },
+  { value: 'cancelled',   label: 'Cancelled',   color: '#ef4444' },
 ]
 
 const kanbanColumns = [
@@ -524,7 +633,7 @@ const roleLabels = {
   technical_team: 'Technical Team', documentation_team: 'Documentation Team', liaison_officer: 'Liaison Officer',
 }
 
-// ─── Computed ────────────────────────────────────────────
+// ─── Computed ─────────────────────────────────────────────
 const tasksByStatus = computed(() => {
   const map = {}
   for (const col of kanbanColumns) map[col.status] = []
@@ -534,7 +643,7 @@ const tasksByStatus = computed(() => {
   return map
 })
 
-// ─── Helpers ─────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────
 function priorityLabel(v) { return priorities.find(p => p.value === v)?.label || v }
 function statusLabel(v)   { return statuses.find(s => s.value === v)?.label || v }
 function roleLabel(v)     { return roleLabels[v] || v }
@@ -555,6 +664,10 @@ function timeAgo(dt) {
   if (hrs < 24)  return `${hrs} jam lalu`
   return formatDate(dt)
 }
+function eventStatusLabel(s) {
+  const m = { draft: 'Draft', active: 'Active', ongoing: 'Ongoing', completed: 'Selesai', cancelled: 'Dibatalkan' }
+  return m[s] || s
+}
 
 let debounceTimer
 function debounceFetch() {
@@ -562,17 +675,57 @@ function debounceFetch() {
   debounceTimer = setTimeout(() => fetchTasks(), 400)
 }
 
-// ─── Data Fetching ────────────────────────────────────────
+// ─── Event Selection ───────────────────────────────────────
+function filterEvents() {
+  const q = eventSearch.value.toLowerCase()
+  filteredEvents.value = q
+    ? eventsList.value.filter(ev =>
+        ev.name.toLowerCase().includes(q) || (ev.location || '').toLowerCase().includes(q))
+    : [...eventsList.value]
+}
+
+async function selectEvent(ev) {
+  selectedEvent.value = ev
+  localStorage.setItem('tasks_selected_event_id', String(ev.id))
+  filters.value = { search: '', priority: '', status: '', my_tasks: false, overdue: false }
+  await Promise.all([fetchTasks(), loadEventPersonnel(), loadEventStats()])
+}
+
+function deselectEvent() {
+  selectedEvent.value = null
+  tasks.value = []
+  eventStats.value = null
+  localStorage.removeItem('tasks_selected_event_id')
+}
+
+async function loadEventStats() {
+  if (!selectedEvent.value) return
+  try {
+    const res = await api.get(`/events/${selectedEvent.value.id}/tasks`)
+    eventStats.value = res.data.stats ?? null
+  } catch { /* silent */ }
+}
+
+async function loadEventTaskCounts() {
+  for (const ev of eventsList.value) {
+    try {
+      const res = await api.get(`/events/${ev.id}/tasks`)
+      eventTaskCounts.value = { ...eventTaskCounts.value, [ev.id]: res.data.stats }
+    } catch { /* skip */ }
+  }
+}
+
+// ─── Data Fetching ─────────────────────────────────────────
 async function fetchTasks(page = 1) {
+  if (!selectedEvent.value) return
   loading.value = true
   try {
-    const params = { page, per_page: 20, ...filters.value }
-    if (!params.event_id)  delete params.event_id
-    if (!params.priority)  delete params.priority
-    if (!params.status)    delete params.status
-    if (!params.search)    delete params.search
-    if (!params.my_tasks)  delete params.my_tasks
-    if (!params.overdue)   delete params.overdue
+    const params = { page, per_page: 20, event_id: selectedEvent.value.id, ...filters.value }
+    if (!params.priority) delete params.priority
+    if (!params.status)   delete params.status
+    if (!params.search)   delete params.search
+    if (!params.my_tasks) delete params.my_tasks
+    if (!params.overdue)  delete params.overdue
     const res = await api.get('/tasks', { params })
     tasks.value = res.data.data
     pagination.value = { current_page: res.data.current_page, last_page: res.data.last_page, per_page: res.data.per_page }
@@ -582,17 +735,24 @@ async function fetchTasks(page = 1) {
 }
 
 async function loadEventsList() {
-  const res = await api.get('/events?per_page=100')
-  eventsList.value = res.data.data
+  loadingEvents.value = true
+  try {
+    const res = await api.get('/events?per_page=100')
+    eventsList.value = res.data.data
+    filteredEvents.value = [...eventsList.value]
+    loadEventTaskCounts()
+  } finally {
+    loadingEvents.value = false
+  }
 }
 
 async function loadEventPersonnel() {
+  if (!selectedEvent.value) return
   personnelList.value = []
   parentableTasksList.value = []
-  if (!form.value.event_id) return
   const [pRes, tRes] = await Promise.all([
-    api.get(`/events/${form.value.event_id}/personnel`),
-    api.get('/tasks', { params: { event_id: form.value.event_id, per_page: 100 } }),
+    api.get(`/events/${selectedEvent.value.id}/personnel`),
+    api.get('/tasks', { params: { event_id: selectedEvent.value.id, per_page: 100 } }),
   ])
   personnelList.value = pRes.data
   parentableTasksList.value = tRes.data.data?.filter(t => t.id !== editId.value) || []
@@ -605,17 +765,21 @@ async function loadComments(task) {
   if (commentsList.value) commentsList.value.scrollTop = commentsList.value.scrollHeight
 }
 
-// ─── CRUD ─────────────────────────────────────────────────
+// ─── CRUD ──────────────────────────────────────────────────
 function defaultForm() {
-  return { title: '', description: '', event_id: '', assigned_to: '', parent_task_id: '', priority: 'medium', status: 'pending', due_date: '', due_time: '', category: '', notes: '' }
+  return {
+    title: '', description: '',
+    event_id: selectedEvent.value?.id || '',
+    assigned_to: '', parent_task_id: '',
+    priority: 'medium', status: 'pending',
+    due_date: '', due_time: '', category: '', notes: '',
+  }
 }
 const form = ref(defaultForm())
 
 function openCreate() {
   editId.value = null
   form.value = defaultForm()
-  personnelList.value = []
-  parentableTasksList.value = []
   formError.value = ''
   showModal.value = true
 }
@@ -637,7 +801,6 @@ function openEdit(task) {
   }
   formError.value = ''
   showModal.value = true
-  loadEventPersonnel()
 }
 
 function closeModal() {
@@ -662,6 +825,7 @@ async function submitForm() {
     }
     closeModal()
     fetchTasks(pagination.value.current_page)
+    loadEventStats()
   } catch (e) {
     const errs = e.response?.data?.errors
     if (errs) formError.value = Object.values(errs).flat().join(' ')
@@ -673,10 +837,11 @@ async function submitForm() {
 
 async function quickStatus(task, newStatus) {
   if (task.status === newStatus) return
-  task.status = newStatus // optimistic
+  task.status = newStatus
   try {
     await api.patch(`/tasks/${task.id}/status`, { status: newStatus })
     if (detailTask.value?.id === task.id) detailTask.value.status = newStatus
+    loadEventStats()
   } catch {
     fetchTasks(pagination.value.current_page)
   }
@@ -687,12 +852,14 @@ function confirmDelete(task) {
 }
 
 async function doDelete() {
+  const target = deleteTarget.value
   submitting.value = true
   try {
-    await api.delete(`/tasks/${deleteTarget.value.id}`)
+    await api.delete(`/tasks/${target.id}`)
     deleteTarget.value = null
-    if (detailTask.value?.id === deleteTarget.value?.id) detailTask.value = null
+    if (detailTask.value?.id === target.id) detailTask.value = null
     fetchTasks(pagination.value.current_page)
+    loadEventStats()
   } finally {
     submitting.value = false
   }
@@ -717,9 +884,15 @@ async function submitComment() {
   }
 }
 
-// ─── Init ─────────────────────────────────────────────────
+// ─── Init ──────────────────────────────────────────────────
 onMounted(async () => {
-  await Promise.all([fetchTasks(), loadEventsList()])
+  await loadEventsList()
+  const url = new URL(window.location.href)
+  const eid = url.searchParams.get('event_id') || localStorage.getItem('tasks_selected_event_id')
+  if (eid) {
+    const ev = eventsList.value.find(e => String(e.id) === String(eid))
+    if (ev) await selectEvent(ev)
+  }
 })
 </script>
 
@@ -891,4 +1064,61 @@ onMounted(async () => {
 .comment-input-area .glass-input { flex: 1; resize: none; font-size: 13px; }
 
 .overdue-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 20px; font-size: 11px; color: #fca5a5; }
+
+/* ─── EVENT SELECTION SCREEN ─── */
+.event-search-bar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; }
+.event-search-input { flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 0.9rem; }
+.event-search-input::placeholder { color: rgba(255,255,255,0.3); }
+.event-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.event-select-card { padding: 20px; cursor: pointer; transition: all 0.2s; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); }
+.event-select-card:hover { transform: translateY(-3px); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.08) !important; }
+.esc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.esc-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-draft { background: #6b7280; } .dot-active { background: #6366f1; } .dot-ongoing { background: #10b981; } .dot-completed { background: #3b82f6; } .dot-cancelled { background: #ef4444; }
+.esc-status-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 20px; }
+.badge-ev-draft { background: rgba(107,114,128,0.2); color: #9ca3af; }
+.badge-ev-active { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+.badge-ev-ongoing { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+.badge-ev-completed { background: rgba(59,130,246,0.2); color: #93c5fd; }
+.badge-ev-cancelled { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.esc-title { font-size: 1rem; font-weight: 600; color: #fff; margin: 0 0 8px; line-height: 1.3; }
+.esc-meta { display: flex; gap: 12px; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 12px; flex-wrap: wrap; }
+.esc-meta span { display: flex; align-items: center; gap: 4px; }
+.esc-stats { display: flex; gap: 16px; margin-bottom: 10px; }
+.esc-stat { display: flex; flex-direction: column; align-items: center; }
+.esc-stat-num { font-size: 1.2rem; font-weight: 700; color: #fff; line-height: 1; }
+.esc-stat-lbl { font-size: 0.68rem; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-top: 2px; }
+.esc-progress-wrap { display: flex; align-items: center; gap: 8px; }
+.esc-progress-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.esc-progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); border-radius: 2px; }
+.esc-progress-pct { font-size: 0.75rem; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.esc-cta { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 0.8rem; color: rgba(99,102,241,0.8); margin-top: 12px; }
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 20px; color: rgba(255,255,255,0.5); text-align: center; }
+
+/* ─── EVENT CONTEXT BAR ─── */
+.event-context-bar { display: flex; align-items: center; gap: 16px; padding: 14px 20px; flex-wrap: wrap; }
+.back-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); border-radius: 8px; padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+.back-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.context-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.context-label { font-size: 0.7rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.06em; }
+.context-event-name { font-size: 1rem; font-weight: 600; color: #fff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.context-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.context-chip { font-size: 0.75rem; padding: 3px 10px; background: rgba(255,255,255,0.08); border-radius: 12px; color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.08); }
+.chip-ev-active { border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
+.chip-ev-ongoing { border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
+.chip-ev-completed { border-color: rgba(59,130,246,0.3); color: #93c5fd; }
+.chip-ev-cancelled { border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+.context-task-stats { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.ctx-stat { display: flex; flex-direction: column; align-items: center; }
+.ctx-num { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1; }
+.ctx-num.in-prog { color: #67e8f9; } .ctx-num.done { color: #6ee7b7; } .ctx-num.overdue-num { color: #fca5a5; }
+.ctx-lbl { font-size: 0.65rem; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-top: 2px; }
+.ctx-progress { display: flex; align-items: center; gap: 6px; }
+.ctx-bar { width: 60px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.ctx-bar-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); border-radius: 2px; }
+.ctx-pct { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+.context-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Event field readonly in modal */
+.event-readonly-field { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.6) !important; font-size: 0.88rem; font-style: italic; padding: 10px 14px; border-radius: 10px; }
 </style>

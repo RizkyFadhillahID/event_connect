@@ -34,6 +34,11 @@ const routes = [
         name: 'Tasks',
         component: () => import('../views/TasksView.vue'),
       },
+      {
+        path: 'rundown',
+        name: 'Rundown',
+        component: () => import('../views/RundownView.vue'),
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },

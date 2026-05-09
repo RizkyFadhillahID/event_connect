@@ -39,7 +39,10 @@
           <CheckSquare :size="20" class="nav-icon-lucide" />
           <span class="nav-label" v-if="!sidebarCollapsed">Task & Workflow</span>
         </RouterLink>
-      </nav>
+        <RouterLink to="/rundown" class="nav-item" active-class="active">
+          <CalendarClock :size="20" class="nav-icon-lucide" />
+          <span class="nav-label" v-if="!sidebarCollapsed">Timeline &amp; Rundown</span>
+        </RouterLink>      </nav>
 
       <div class="sidebar-footer" v-if="!sidebarCollapsed">
         <div class="user-info">
@@ -90,7 +93,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { Home, Users, Calendar, LogOut, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-vue-next'
+import { Home, Users, Calendar, LogOut, ChevronLeft, ChevronRight, CheckSquare, CalendarClock } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -103,6 +106,7 @@ const pageTitles = {
   Users: 'Manajemen Akun',
   Events: 'Manajemen Event',
   Tasks: 'Task & Workflow',
+  Rundown: 'Timeline & Rundown',
 }
 const pageTitle = computed(() => pageTitles[route.name] || 'Dashboard')
 
