@@ -1,12 +1,16 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\RundownController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+
+// Broadcasting auth — uses Sanctum token (Bearer) instead of session cookie
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
@@ -55,6 +59,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Event-scoped task routes (used in event detail panel)
     Route::get('events/{event}/tasks', [TaskController::class, 'eventTasks']);
     Route::get('events/{event}/personnel', [TaskController::class, 'eventPersonnel']);
+
+    // ---------------------------------------------------------------
+    // Group Chat (per event)
+    // ---------------------------------------------------------------
+    Route::get('events/{event}/chat', [ChatController::class, 'index']);
+    Route::post('events/{event}/chat', [ChatController::class, 'store']);
 
     // ---------------------------------------------------------------
     // Event Timeline & Rundown System

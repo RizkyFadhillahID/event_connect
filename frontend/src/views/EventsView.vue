@@ -190,7 +190,6 @@
                 <Loader2 :size="20" class="spinner-icon" />
               </div>
               <div v-else>
-                <!-- Stats bar -->
                 <div v-if="eventTaskStats" class="task-stats-bar">
                   <div class="tstat" style="color:#67e8f9"><span class="tstat-val">{{ eventTaskStats.total }}</span><span>Total</span></div>
                   <div class="tstat" style="color:#fcd34d"><span class="tstat-val">{{ eventTaskStats.in_progress }}</span><span>Berjalan</span></div>
@@ -198,14 +197,12 @@
                   <div class="tstat" style="color:#6ee7b7"><span class="tstat-val">{{ eventTaskStats.completed }}</span><span>Selesai</span></div>
                   <div class="tstat" style="color:#fca5a5"><span class="tstat-val">{{ eventTaskStats.overdue }}</span><span>Overdue</span></div>
                 </div>
-                <!-- Progress -->
                 <div v-if="eventTaskStats?.total" class="task-progress-wrap">
                   <div class="task-progress-bar">
                     <div class="task-progress-fill" :style="`width:${eventTaskStats.progress}%`"></div>
                   </div>
                   <span style="font-size:11px;color:var(--text-muted)">{{ eventTaskStats.progress }}% selesai</span>
                 </div>
-                <!-- Recent task list -->
                 <div v-if="!eventTasks.length" style="color:var(--text-muted);font-size:13px;padding:8px 0">
                   Belum ada task
                 </div>
@@ -350,13 +347,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { Plus, Calendar, Edit, Trash2, ChevronLeft, ChevronRight, X, MapPin, Clock, DollarSign, Users, User, AlertCircle, Loader2, CheckSquare } from 'lucide-vue-next'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
 
 const auth = useAuthStore()
+const router = useRouter()
 const events = ref([])
 const loading = ref(true)
 const search = ref('')
@@ -385,11 +383,12 @@ const statuses = [
 ]
 
 const roleLabels = {
-  superadmin: 'Super Admin', project_manager: 'Project Manager', event_planner: 'Event Planner',
-  promotion_team: 'Promotion Team', partnership_manager: 'Partnership Manager', budgeting: 'Budgeting',
-  operations_team: 'Operations Team', creative_team: 'Creative Team', rundown_coordinator: 'Rundown Coordinator',
-  talent_coordinator: 'Talent Coordinator', registration_guest_management: 'Registration & Guest Mgmt',
-  technical_team: 'Technical Team', documentation_team: 'Documentation Team', liaison_officer: 'Liaison Officer',
+  superadmin: 'Super Admin', project_manager: 'Project Manager', staff: 'Staff / Personnel',
+  event_planner: 'Event Planner', promotion_team: 'Promotion Team', partnership_manager: 'Partnership Manager',
+  budgeting: 'Budgeting', operations_team: 'Operations Team', creative_team: 'Creative Team',
+  rundown_coordinator: 'Rundown Coordinator', talent_coordinator: 'Talent Coordinator',
+  registration_guest_management: 'Registration & Guest Mgmt', technical_team: 'Technical Team',
+  documentation_team: 'Documentation Team', liaison_officer: 'Liaison Officer',
 }
 function roleLabel(r) { return roleLabels[r] || r }
 function statusLabel2(s) {
@@ -529,6 +528,13 @@ async function doDelete() {
 onMounted(() => {
   fetchEvents()
   if (auth.canManageEvents) loadUsers()
+})
+
+// Close all modals when navigating away
+watch(() => router.currentRoute.value.path, () => {
+  detailEvent.value = null
+  showModal.value = false
+  deleteTarget.value = null
 })
 </script>
 

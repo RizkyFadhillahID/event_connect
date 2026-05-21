@@ -429,7 +429,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import axios from '../api/axios'
 import { useAuthStore } from '../stores/auth'
 import {
   Plus, X, Pencil, Trash2, Eye, List, Clock, Calendar,
@@ -496,19 +496,64 @@ const rundownStatuses = [
 // ───────────────────────────────────────────────────────────────
 // Permission helpers
 // ───────────────────────────────────────────────────────────────
-const MANAGE_ROLES  = ['superadmin', 'project_manager', 'rundown_coordinator', 'event_planner']
-const STATUS_ANY    = ['superadmin', 'project_manager', 'rundown_coordinator', 'event_planner', 'operations_team']
-const STATUS_CAT    = { technical_team: 'technical', talent_coordinator: 'talent' }
+const currentUserPersonnel = computed(() => {
+  return personnelList.value.find(p => p.id === auth.user?.id)
+})
 
-const canManage = computed(() => MANAGE_ROLES.includes(auth.user?.role))
-const canDelete = computed(() => ['superadmin', 'project_manager', 'rundown_coordinator'].includes(auth.user?.role))
+const currentUserEventRole = computed(() => {
+  const r = currentUserPersonnel.value?.role_in_event
+  if (!r) return ''
+  return r.toLowerCase().replace(/[\s_]+/g, '')
+})
+
+const canManage = computed(() => {
+  const globalRole = auth.user?.role
+  if (['superadmin', 'project_manager'].includes(globalRole)) return true
+  
+  const eventRole = currentUserEventRole.value
+  return [
+    'rundowncoordinator', 'rundownpic',
+    'eventplanner', 'eventcoordinator',
+    'projectmanager'
+  ].includes(eventRole)
+})
+
+const canDelete = computed(() => {
+  const globalRole = auth.user?.role
+  if (['superadmin', 'project_manager'].includes(globalRole)) return true
+  
+  const eventRole = currentUserEventRole.value
+  return ['rundowncoordinator', 'rundownpic'].includes(eventRole)
+})
 
 function canUpdateStatus(item) {
-  const role = auth.user?.role
-  if (!role) return false
-  if (item.pic_id === auth.user?.id) return true
-  if (STATUS_ANY.includes(role)) return true
-  if (STATUS_CAT[role]) return item.category === STATUS_CAT[role]
+  const userId = auth.user?.id
+  if (!userId) return false
+  if (item.pic_id === userId) return true
+  
+  const globalRole = auth.user?.role
+  if (['superadmin', 'project_manager'].includes(globalRole)) return true
+  
+  const eventRole = currentUserEventRole.value
+  
+  // Roles that can update status of any category
+  if ([
+    'rundowncoordinator', 'rundownpic',
+    'eventplanner', 'eventcoordinator',
+    'operationsteam', 'operationshead',
+    'projectmanager'
+  ].includes(eventRole)) {
+    return true
+  }
+  
+  // Category-specific roles
+  if (['technicalteam', 'technicallead', 'technicalpic'].includes(eventRole)) {
+    return item.category === 'technical'
+  }
+  if (['talentcoordinator', 'talenthandler', 'talentpic'].includes(eventRole)) {
+    return item.category === 'talent'
+  }
+  
   return false
 }
 
@@ -516,7 +561,7 @@ function canUpdateStatus(item) {
 // Data fetching
 // ───────────────────────────────────────────────────────────────
 async function fetchEvents() {
-  const res = await axios.get('/api/events')
+  const res = await axios.get('/events')
   eventsList.value = res.data.data ?? res.data
 }
 
@@ -525,7 +570,7 @@ async function fetchRundowns() {
   loading.value = true
   try {
     const params = { ...filters.value }
-    const res = await axios.get(`/api/events/${filters.value.event_id}/rundowns`, { params })
+    const res = await axios.get(`/events/${filters.value.event_id}/rundowns`, { params })
     rundowns.value  = res.data.data
     eventDates.value = res.data.dates
   } finally {
@@ -535,20 +580,20 @@ async function fetchRundowns() {
 
 async function fetchPersonnel() {
   if (!filters.value.event_id) return
-  const res = await axios.get(`/api/events/${filters.value.event_id}/personnel`)
+  const res = await axios.get(`/events/${filters.value.event_id}/personnel`)
   personnelList.value = res.data.data ?? res.data
 }
 
 async function fetchEventTasks() {
   if (!filters.value.event_id) return
-  const res = await axios.get('/api/tasks', { params: { event_id: filters.value.event_id, per_page: 100 } })
+  const res = await axios.get('/tasks', { params: { event_id: filters.value.event_id, per_page: 100 } })
   eventTasks.value = res.data.data ?? res.data
 }
 
 async function fetchLogs(rundownId) {
   loadingLogs.value = true
   try {
-    const res = await axios.get(`/api/rundowns/${rundownId}/logs`)
+    const res = await axios.get(`/rundowns/${rundownId}/logs`)
     detailLogs.value = res.data.data
   } finally {
     loadingLogs.value = false
@@ -621,12 +666,12 @@ function openEdit(item) {
   editId.value = item.id
   form.value   = {
     event_id:            item.event_id,
-    event_date:          item.event_date,
+    event_date:          (item.event_date ?? '').slice(0, 10),
     title:               item.title,
     description:         item.description || '',
     category:            item.category || '',
-    start_time:          item.start_time,
-    end_time:            item.end_time,
+    start_time:          (item.start_time ?? '').slice(0, 5),
+    end_time:            (item.end_time ?? '').slice(0, 5),
     pic_id:              item.pic_id || '',
     location_note:       item.location_note || '',
     notes:               item.notes || '',
@@ -638,8 +683,9 @@ function openEdit(item) {
 }
 
 function openEditFromDetail() {
+  const item = detailItem.value
   closeDetail()
-  openEdit(detailItem.value)
+  openEdit(item)
 }
 
 function addDepTask() {
@@ -668,9 +714,9 @@ async function saveForm() {
   try {
     const payload = { ...form.value }
     if (editId.value) {
-      await axios.put(`/api/rundowns/${editId.value}`, payload)
+      await axios.put(`/rundowns/${editId.value}`, payload)
     } else {
-      await axios.post(`/api/events/${form.value.event_id}/rundowns`, payload)
+      await axios.post(`/events/${form.value.event_id}/rundowns`, payload)
     }
     closeForm()
     fetchRundowns()
@@ -689,7 +735,7 @@ function closeForm() {
 // Detail
 // ───────────────────────────────────────────────────────────────
 async function openDetail(item) {
-  const res = await axios.get(`/api/rundowns/${item.id}`)
+  const res = await axios.get(`/rundowns/${item.id}`)
   detailItem.value    = res.data.data
   detailLogs.value    = []
   pendingStatus.value = ''
@@ -738,7 +784,7 @@ async function confirmStatus() {
 }
 
 async function doStatusUpdate(id, status, reason) {
-  await axios.patch(`/api/rundowns/${id}/status`, { status, delay_reason: reason || undefined })
+  await axios.patch(`/rundowns/${id}/status`, { status, delay_reason: reason || undefined })
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -746,14 +792,14 @@ async function doStatusUpdate(id, status, reason) {
 // ───────────────────────────────────────────────────────────────
 async function confirmDelete(item) {
   if (!confirm(`Hapus sesi "${item.title}"?`)) return
-  await axios.delete(`/api/rundowns/${item.id}`)
+  await axios.delete(`/rundowns/${item.id}`)
   fetchRundowns()
 }
 
 async function confirmDeleteFromDetail() {
   const item = detailItem.value
   if (!confirm(`Hapus sesi "${item.title}"?`)) return
-  await axios.delete(`/api/rundowns/${item.id}`)
+  await axios.delete(`/rundowns/${item.id}`)
   closeDetail()
   fetchRundowns()
 }

@@ -87,6 +87,9 @@
         <RouterView />
       </main>
     </div>
+
+    <!-- Floating Chat -->
+    <FloatingChat />
   </div>
 </template>
 
@@ -95,6 +98,7 @@ import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { Home, Users, Calendar, LogOut, ChevronLeft, ChevronRight, CheckSquare, CalendarClock } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import FloatingChat from '../components/FloatingChat.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -113,6 +117,7 @@ const pageTitle = computed(() => pageTitles[route.name] || 'Dashboard')
 const roleLabels = {
   superadmin: 'Super Admin',
   project_manager: 'Project Manager',
+  staff: 'Staff / Personnel',
   event_planner: 'Event Planner',
   promotion_team: 'Promotion Team',
   partnership_manager: 'Partnership Manager',
@@ -160,6 +165,7 @@ async function handleLogout() {
   top: 0;
   height: 100vh;
   flex-shrink: 0;
+  z-index: 1001;
 }
 .sidebar.collapsed { width: 70px; }
 

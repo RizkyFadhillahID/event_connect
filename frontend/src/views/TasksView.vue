@@ -626,11 +626,12 @@ const kanbanColumns = [
 ]
 
 const roleLabels = {
-  superadmin: 'Super Admin', project_manager: 'Project Manager', event_planner: 'Event Planner',
-  promotion_team: 'Promotion Team', partnership_manager: 'Partnership Manager', budgeting: 'Budgeting',
-  operations_team: 'Operations Team', creative_team: 'Creative Team', rundown_coordinator: 'Rundown Coordinator',
-  talent_coordinator: 'Talent Coordinator', registration_guest_management: 'Registration & Guest Mgmt',
-  technical_team: 'Technical Team', documentation_team: 'Documentation Team', liaison_officer: 'Liaison Officer',
+  superadmin: 'Super Admin', project_manager: 'Project Manager', staff: 'Staff / Personnel',
+  event_planner: 'Event Planner', promotion_team: 'Promotion Team', partnership_manager: 'Partnership Manager',
+  budgeting: 'Budgeting', operations_team: 'Operations Team', creative_team: 'Creative Team',
+  rundown_coordinator: 'Rundown Coordinator', talent_coordinator: 'Talent Coordinator',
+  registration_guest_management: 'Registration & Guest Mgmt', technical_team: 'Technical Team',
+  documentation_team: 'Documentation Team', liaison_officer: 'Liaison Officer',
 }
 
 // ─── Computed ─────────────────────────────────────────────

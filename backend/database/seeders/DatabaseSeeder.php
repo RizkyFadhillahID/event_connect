@@ -33,18 +33,18 @@ class DatabaseSeeder extends Seeder
 
         // Create other team members
         $usersData = [
-            ['name' => 'Siti Rahayu',      'email' => 'planner@eventconnect.com',      'role' => 'event_planner',                 'phone' => '081234567892'],
-            ['name' => 'Ahmad Fauzi',      'email' => 'promo@eventconnect.com',         'role' => 'promotion_team',                'phone' => '081234567893'],
-            ['name' => 'Diana Putri',      'email' => 'partner@eventconnect.com',       'role' => 'partnership_manager',           'phone' => '081234567894'],
-            ['name' => 'Rizky Maulana',    'email' => 'budget@eventconnect.com',        'role' => 'budgeting',                     'phone' => '081234567895'],
-            ['name' => 'Eka Fitriani',     'email' => 'ops@eventconnect.com',           'role' => 'operations_team',               'phone' => '081234567896'],
-            ['name' => 'Farhan Hidayat',   'email' => 'creative@eventconnect.com',      'role' => 'creative_team',                 'phone' => '081234567897'],
-            ['name' => 'Gina Marlina',     'email' => 'rundown@eventconnect.com',       'role' => 'rundown_coordinator',           'phone' => '081234567898'],
-            ['name' => 'Hendra Wijaya',    'email' => 'talent@eventconnect.com',        'role' => 'talent_coordinator',            'phone' => '081234567899'],
-            ['name' => 'Indah Permata',    'email' => 'registration@eventconnect.com',  'role' => 'registration_guest_management', 'phone' => '081234567900'],
-            ['name' => 'Joko Susilo',      'email' => 'tech@eventconnect.com',          'role' => 'technical_team',                'phone' => '081234567901'],
-            ['name' => 'Kartika Dewi',     'email' => 'doc@eventconnect.com',           'role' => 'documentation_team',            'phone' => '081234567902'],
-            ['name' => 'Luhut Pangaribuan', 'email' => 'lo@eventconnect.com',            'role' => 'liaison_officer',               'phone' => '081234567903'],
+            ['name' => 'Siti Rahayu',      'email' => 'planner@eventconnect.com',      'role' => 'staff', 'phone' => '081234567892'],
+            ['name' => 'Ahmad Fauzi',      'email' => 'promo@eventconnect.com',         'role' => 'staff', 'phone' => '081234567893'],
+            ['name' => 'Diana Putri',      'email' => 'partner@eventconnect.com',       'role' => 'staff', 'phone' => '081234567894'],
+            ['name' => 'Rizky Maulana',    'email' => 'budget@eventconnect.com',        'role' => 'staff', 'phone' => '081234567895'],
+            ['name' => 'Eka Fitriani',     'email' => 'ops@eventconnect.com',           'role' => 'staff', 'phone' => '081234567896'],
+            ['name' => 'Farhan Hidayat',   'email' => 'creative@eventconnect.com',      'role' => 'staff', 'phone' => '081234567897'],
+            ['name' => 'Gina Marlina',     'email' => 'rundown@eventconnect.com',       'role' => 'staff', 'phone' => '081234567898'],
+            ['name' => 'Hendra Wijaya',    'email' => 'talent@eventconnect.com',        'role' => 'staff', 'phone' => '081234567899'],
+            ['name' => 'Indah Permata',    'email' => 'registration@eventconnect.com',  'role' => 'staff', 'phone' => '081234567900'],
+            ['name' => 'Joko Susilo',      'email' => 'tech@eventconnect.com',          'role' => 'staff', 'phone' => '081234567901'],
+            ['name' => 'Kartika Dewi',     'email' => 'doc@eventconnect.com',           'role' => 'staff', 'phone' => '081234567902'],
+            ['name' => 'Luhut Pangaribuan', 'email' => 'lo@eventconnect.com',            'role' => 'staff', 'phone' => '081234567903'],
         ];
 
         $createdUsers = [];

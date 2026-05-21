@@ -103,7 +103,7 @@ class TaskController extends Controller
                 ->where('event_id', $data['event_id'])
                 ->where('user_id', $data['assigned_to'])
                 ->exists();
-            if (!$isPersonnel && !in_array($user->role, ['superadmin', 'project_manager'])) {
+            if (!$isPersonnel) {
                 return response()->json(['message' => 'User yang ditugaskan bukan personel event ini.'], 422);
             }
         }
@@ -164,6 +164,42 @@ class TaskController extends Controller
             'notes'          => 'nullable|string',
             'order'          => 'nullable|integer',
         ]);
+
+        // Enforce that only managers (PM/Superadmin or managerial event personnel) can update major task details
+        $isManager = in_array($user->role, ['superadmin', 'project_manager']);
+        if (!$isManager) {
+            $personnel = DB::table('event_personnel')
+                ->where('event_id', $task->event_id)
+                ->where('user_id', $user->id)
+                ->first();
+            if ($personnel) {
+                $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
+                $isManager = in_array($roleInEvent, ['rundowncoordinator', 'rundownpic', 'eventplanner', 'eventcoordinator', 'projectmanager']);
+            }
+        }
+
+        if (!$isManager) {
+            // Staff biasa: hanya boleh edit deskripsi, catatan, status.
+            // Dilarang mengubah event_id, assigned_to, priority, due_date, due_time, dan title.
+            $forbiddenFields = ['event_id', 'assigned_to', 'priority', 'due_date', 'due_time', 'title'];
+            foreach ($forbiddenFields as $field) {
+                if (array_key_exists($field, $data) && $data[$field] != $task->{$field}) {
+                    return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah detail utama tugas ini (seperti penerima, tenggat, prioritas).'], 403);
+                }
+            }
+        }
+
+        // Validate assignee is personnel of the event
+        if (!empty($data['assigned_to'])) {
+            $eventId = $data['event_id'] ?? $task->event_id;
+            $isPersonnel = DB::table('event_personnel')
+                ->where('event_id', $eventId)
+                ->where('user_id', $data['assigned_to'])
+                ->exists();
+            if (!$isPersonnel) {
+                return response()->json(['message' => 'User yang ditugaskan bukan personel event ini.'], 422);
+            }
+        }
 
         // Auto-set completed_at when marking completed
         if (isset($data['status'])) {
@@ -258,7 +294,7 @@ class TaskController extends Controller
         $tasks = Task::with(['event:id,name', 'creator:id,name', 'subtasks'])
             ->where('assigned_to', $user->id)
             ->whereNotIn('status', ['completed', 'cancelled'])
-            ->orderByRaw("FIELD(priority,'urgent','high','medium','low')")
+            ->orderByRaw("case priority when 'urgent' then 1 when 'high' then 2 when 'medium' then 3 when 'low' then 4 else 5 end")
             ->orderBy('due_date')
             ->limit(20)
             ->get()
@@ -289,7 +325,7 @@ class TaskController extends Controller
         $tasks = Task::with(['assignee:id,name,role', 'creator:id,name', 'subtasks'])
             ->where('event_id', $event->id)
             ->rootTasks()
-            ->orderByRaw("FIELD(priority,'urgent','high','medium','low')")
+            ->orderByRaw("case priority when 'urgent' then 1 when 'high' then 2 when 'medium' then 3 when 'low' then 4 else 5 end")
             ->orderBy('due_date')
             ->get()
             ->map(function ($t) {

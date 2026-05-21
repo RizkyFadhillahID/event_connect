@@ -198,18 +198,7 @@ function defaultForm() {
 const roles = [
   { value: 'superadmin', label: 'Super Admin' },
   { value: 'project_manager', label: 'Project Manager' },
-  { value: 'event_planner', label: 'Event Planner' },
-  { value: 'promotion_team', label: 'Promotion Team' },
-  { value: 'partnership_manager', label: 'Partnership Manager' },
-  { value: 'budgeting', label: 'Budgeting' },
-  { value: 'operations_team', label: 'Operations Team' },
-  { value: 'creative_team', label: 'Creative Team' },
-  { value: 'rundown_coordinator', label: 'Rundown Coordinator' },
-  { value: 'talent_coordinator', label: 'Talent Coordinator' },
-  { value: 'registration_guest_management', label: 'Registration & Guest Mgmt' },
-  { value: 'technical_team', label: 'Technical Team (IT & Production)' },
-  { value: 'documentation_team', label: 'Documentation Team' },
-  { value: 'liaison_officer', label: 'Liaison Officer (LO)' },
+  { value: 'staff', label: 'Staff / Personnel' },
 ]
 
 function roleLabel(v) { return roles.find(r => r.value === v)?.label || v }

@@ -13,6 +13,7 @@ class EventController extends Controller
 {
     public function index(Request $request)
     {
+        $user    = $request->user();
         $perPage = (int) $request->input('per_page', 10);
         $perPage = max(1, min($perPage, 100));
 
@@ -25,6 +26,11 @@ class EventController extends Controller
                 });
             })
             ->when($request->status, fn($q) => $q->where('status', $request->status))
+            // Staff & other roles only see events they are registered in
+            ->when(
+                !in_array($user->role, ['superadmin', 'project_manager']),
+                fn($q) => $q->whereHas('personnel', fn($inner) => $inner->where('users.id', $user->id))
+            )
             ->orderBy('start_date', 'desc')
             ->paginate($perPage);
 
@@ -77,8 +83,14 @@ class EventController extends Controller
         return response()->json($event->load(['creator:id,name', 'personnel:id,name,role']), 201);
     }
 
-    public function show(Event $event)
+    public function show(Request $request, Event $event)
     {
+        $user = $request->user();
+        if (!in_array($user->role, ['superadmin', 'project_manager'])) {
+            $isMember = $event->personnel()->where('users.id', $user->id)->exists();
+            abort_unless($isMember, 403, 'Anda tidak memiliki akses ke event ini.');
+        }
+
         return response()->json($event->load(['creator:id,name', 'personnel:id,name,role']));
     }
 

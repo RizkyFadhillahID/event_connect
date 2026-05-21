@@ -3,8 +3,8 @@
     <!-- Stats row -->
     <div class="stats-grid">
       <div class="stat-card glass-card" v-for="s in stats" :key="s.label">
-        <div class="stat-icon" :style="{ background: s.gradient }">
-          <component :is="s.icon" :size="24" />
+        <div class="stat-icon" :class="`tone-${s.tone}`">
+          <component :is="s.icon" :size="18" :stroke-width="2.25" />
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ s.value }}</div>
@@ -81,7 +81,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ArrowRight, Loader2, CheckSquare } from 'lucide-vue-next'
+import {
+  ArrowRight,
+  Loader2,
+  CheckSquare,
+  CalendarDays,
+  Activity,
+  Users,
+  CheckCircle2,
+} from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
 
@@ -104,10 +112,10 @@ function formatDate(d) {
 }
 
 const stats = ref([
-  { label: 'Total Event', value: 0, icon: 'Calendar', gradient: 'linear-gradient(135deg,#6366f1,#8b5cf6)' },
-  { label: 'Event Aktif', value: 0, icon: 'Zap', gradient: 'linear-gradient(135deg,#06b6d4,#0284c7)' },
-  { label: 'Total User', value: 0, icon: 'Users', gradient: 'linear-gradient(135deg,#10b981,#059669)' },
-  { label: 'Selesai', value: 0, icon: 'Check', gradient: 'linear-gradient(135deg,#f59e0b,#d97706)' },
+  { label: 'Total Event', value: 0, icon: CalendarDays, tone: 'event' },
+  { label: 'Event Aktif', value: 0, icon: Activity, tone: 'active' },
+  { label: 'Total User', value: 0, icon: Users, tone: 'user' },
+  { label: 'Selesai', value: 0, icon: CheckCircle2, tone: 'done' },
 ])
 
 onMounted(async () => {
@@ -147,18 +155,23 @@ onMounted(async () => {
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: 12px;
+  padding: 16px 20px;
 }
 .stat-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
+  width: 40px; height: 40px;
+  border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
   flex-shrink: 0;
 }
-.stat-value { font-size: 26px; font-weight: 700; }
-.stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+.tone-event { color: #a5b4fc; }
+.tone-active { color: #67e8f9; }
+.tone-user { color: #6ee7b7; }
+.tone-done { color: #fcd34d; }
+.stat-value { font-size: 22px; font-weight: 700; line-height: 1.1; }
+.stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
 .content-grid {
   display: grid;

@@ -16,29 +16,6 @@ class RundownController extends Controller
     // Role helpers
     // ──────────────────────────────────────────────────────────────────────
 
-    /** Roles that can create / edit / delete rundown items */
-    private const MANAGE_ROLES = [
-        'superadmin',
-        'project_manager',
-        'rundown_coordinator',
-        'event_planner',
-    ];
-
-    /** Roles that can update the status of any category */
-    private const STATUS_ANY_ROLES = [
-        'superadmin',
-        'project_manager',
-        'rundown_coordinator',
-        'event_planner',
-        'operations_team',
-    ];
-
-    /** Roles whose status-update permission is limited to specific categories */
-    private const STATUS_CATEGORY_MAP = [
-        'technical_team'    => 'technical',
-        'talent_coordinator' => 'talent',
-    ];
-
     /** Ensure the user is a member of the event (or a superadmin / project_manager) */
     private function canAccessEvent($user, int $eventId): bool
     {
@@ -51,28 +28,76 @@ class RundownController extends Controller
             ->exists();
     }
 
-    private function canManageRundown($user): bool
+    private function canManageRundown($user, int $eventId): bool
     {
-        return in_array($user->role, self::MANAGE_ROLES);
+        if (in_array($user->role, ['superadmin', 'project_manager'])) {
+            return true;
+        }
+
+        $personnel = DB::table('event_personnel')
+            ->where('event_id', $eventId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$personnel) {
+            return false;
+        }
+
+        $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
+
+        return in_array($roleInEvent, [
+            'rundowncoordinator', 'rundownpic',
+            'eventplanner', 'eventcoordinator',
+            'projectmanager'
+        ]);
     }
 
     /**
      * Returns true when this user is allowed to change the status of a rundown item.
-     * - ALL roles in STATUS_ANY_ROLES → can update any category
-     * - Roles in STATUS_CATEGORY_MAP → only if the item category matches their mapped category
      * - PIC of the item → always allowed (regardless of role)
+     * - Global Superadmin / Project Manager → always allowed
+     * - Event-specific manager roles → allowed for any category
+     * - Event-specific technical/talent roles → allowed only for respective categories
      */
     private function canUpdateStatus($user, EventRundown $rundown): bool
     {
         if ($rundown->pic_id === $user->id) {
             return true;
         }
-        if (in_array($user->role, self::STATUS_ANY_ROLES)) {
+        if (in_array($user->role, ['superadmin', 'project_manager'])) {
             return true;
         }
-        if (isset(self::STATUS_CATEGORY_MAP[$user->role])) {
-            return $rundown->category === self::STATUS_CATEGORY_MAP[$user->role];
+
+        $personnel = DB::table('event_personnel')
+            ->where('event_id', $rundown->event_id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$personnel) {
+            return false;
         }
+
+        $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
+
+        // Roles that can update status of any category
+        if (in_array($roleInEvent, [
+            'rundowncoordinator', 'rundownpic',
+            'eventplanner', 'eventcoordinator',
+            'operationsteam', 'operationshead',
+            'projectmanager'
+        ])) {
+            return true;
+        }
+
+        // Roles mapped to specific categories
+        if (in_array($roleInEvent, ['technicalteam', 'technicallead', 'technicalpic'])) {
+            return $rundown->category === 'technical';
+        }
+
+        if (in_array($roleInEvent, ['talentcoordinator', 'talenthandler', 'talentpic'])) {
+            return $rundown->category === 'talent';
+        }
+
         return false;
     }
 
@@ -121,7 +146,8 @@ class RundownController extends Controller
         $dates = EventRundown::forEvent($event->id)
             ->orderBy('event_date')
             ->distinct()
-            ->pluck('event_date');
+            ->pluck('event_date')
+            ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'));
 
         return response()->json([
             'data'  => $rundowns,
@@ -139,7 +165,7 @@ class RundownController extends Controller
         if (!$this->canAccessEvent($user, $event->id)) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
-        if (!$this->canManageRundown($user)) {
+        if (!$this->canManageRundown($user, $event->id)) {
             return response()->json(['message' => 'Hanya rundown coordinator, event planner, atau manager yang dapat membuat rundown.'], 403);
         }
 
@@ -233,7 +259,7 @@ class RundownController extends Controller
         if (!$this->canAccessEvent($user, $rundown->event_id)) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
-        if (!$this->canManageRundown($user)) {
+        if (!$this->canManageRundown($user, $rundown->event_id)) {
             return response()->json(['message' => 'Tidak memiliki izin untuk mengedit rundown.'], 403);
         }
 
@@ -349,7 +375,21 @@ class RundownController extends Controller
         if (!$this->canAccessEvent($user, $rundown->event_id)) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
-        if (!in_array($user->role, ['superadmin', 'project_manager', 'rundown_coordinator'])) {
+        $allowed = false;
+        if (in_array($user->role, ['superadmin', 'project_manager'])) {
+            $allowed = true;
+        } else {
+            $personnel = DB::table('event_personnel')
+                ->where('event_id', $rundown->event_id)
+                ->where('user_id', $user->id)
+                ->first();
+            if ($personnel) {
+                $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
+                $allowed = in_array($roleInEvent, ['rundowncoordinator', 'rundownpic', 'projectmanager']);
+            }
+        }
+
+        if (!$allowed) {
             return response()->json(['message' => 'Hanya rundown coordinator atau manager yang dapat menghapus rundown.'], 403);
         }
 
@@ -385,7 +425,7 @@ class RundownController extends Controller
         if (!$this->canAccessEvent($user, $rundown->event_id)) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
-        if (!$this->canManageRundown($user)) {
+        if (!$this->canManageRundown($user, $rundown->event_id)) {
             return response()->json(['message' => 'Tidak memiliki izin.'], 403);
         }
 
@@ -403,7 +443,7 @@ class RundownController extends Controller
 
         return response()->json([
             'message' => 'Dependency berhasil ditambahkan.',
-            'data'    => $rundown->dependencyTasks()->get(['id', 'title', 'status']),
+            'data'    => $rundown->dependencyTasks()->get(['tasks.id', 'title', 'status']),
         ]);
     }
 
@@ -417,7 +457,7 @@ class RundownController extends Controller
         if (!$this->canAccessEvent($user, $rundown->event_id)) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
-        if (!$this->canManageRundown($user)) {
+        if (!$this->canManageRundown($user, $rundown->event_id)) {
             return response()->json(['message' => 'Tidak memiliki izin.'], 403);
         }
 
@@ -425,7 +465,7 @@ class RundownController extends Controller
 
         return response()->json([
             'message' => 'Dependency berhasil dihapus.',
-            'data'    => $rundown->dependencyTasks()->get(['id', 'title', 'status']),
+            'data'    => $rundown->dependencyTasks()->get(['tasks.id', 'title', 'status']),
         ]);
     }
 
@@ -444,7 +484,8 @@ class RundownController extends Controller
         $dates = EventRundown::forEvent($event->id)
             ->orderBy('event_date')
             ->distinct()
-            ->pluck('event_date');
+            ->pluck('event_date')
+            ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'));
 
         return response()->json(['data' => $dates]);
     }
