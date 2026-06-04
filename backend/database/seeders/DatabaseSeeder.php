@@ -11,8 +11,17 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Seed Platform Admin first
+        $this->call(PlatformAdminSeeder::class);
+        $this->call(LandingContentSeeder::class);
+
+        // Get default organization
+        $org = \App\Models\Organization::where('slug', 'default')->first();
+        $orgId = $org ? $org->id : 1;
+
         // Create Superadmin
         $superadmin = User::create([
+            'organization_id' => $orgId,
             'name' => 'Super Admin',
             'email' => 'superadmin@eventconnect.com',
             'phone' => '081234567890',
@@ -23,6 +32,7 @@ class DatabaseSeeder extends Seeder
 
         // Create Project Manager
         $pm = User::create([
+            'organization_id' => $orgId,
             'name' => 'Budi Santoso',
             'email' => 'pm@eventconnect.com',
             'phone' => '081234567891',
@@ -50,6 +60,7 @@ class DatabaseSeeder extends Seeder
         $createdUsers = [];
         foreach ($usersData as $userData) {
             $createdUsers[] = User::create([
+                'organization_id' => $orgId,
                 'name'     => $userData['name'],
                 'email'    => $userData['email'],
                 'phone'    => $userData['phone'],
@@ -136,7 +147,7 @@ class DatabaseSeeder extends Seeder
         $personnelRoles = ['Event Coordinator', 'Promotion Lead', 'Budget Manager', 'Operations Head', 'Creative Director', 'Talent Handler', 'Rundown PIC', 'Registration PIC'];
 
         foreach ($eventsData as $eventData) {
-            $event = Event::create($eventData);
+            $event = Event::create(array_merge($eventData, ['organization_id' => $orgId]));
 
             $syncData = [];
             foreach (array_slice($createdUsers, 0, 6) as $i => $user) {

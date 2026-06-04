@@ -107,16 +107,16 @@
             <div class="form-row">
               <div class="form-group">
                 <label>Nama Lengkap *</label>
-                <input v-model="form.name" class="glass-input" required placeholder="John Doe"/>
+                <input v-model="form.name" class="glass-input" required placeholder="Masukkan nama lengkap"/>
               </div>
               <div class="form-group">
                 <label>Telepon</label>
-                <input v-model="form.phone" class="glass-input" placeholder="08xxxxxxxxxx"/>
+                <input v-model="form.phone" class="glass-input" placeholder="081234567890"/>
               </div>
             </div>
             <div class="form-group">
               <label>Email *</label>
-              <input v-model="form.email" type="email" class="glass-input" required placeholder="email@example.com"/>
+              <input v-model="form.email" type="email" class="glass-input" required placeholder="nama@domain.com"/>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -136,7 +136,7 @@
             </div>
             <div class="form-group">
               <label>Password {{ editId ? '(kosongkan jika tidak diubah)' : '*' }}</label>
-              <input v-model="form.password" type="password" class="glass-input" :required="!editId" placeholder="Min 8 karakter"/>
+              <input v-model="form.password" type="password" class="glass-input" :required="!editId" placeholder="Masukkan kata sandi"/>
             </div>
 
             <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
@@ -281,7 +281,7 @@ onMounted(() => fetchUsers())
 
 .avatar-sm {
   width: 32px; height: 32px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700; flex-shrink: 0;
@@ -289,11 +289,11 @@ onMounted(() => fetchUsers())
 .role-pill {
   display: inline-block;
   padding: 3px 10px;
-  background: rgba(99,102,241,0.15);
-  border: 1px solid rgba(99,102,241,0.3);
+  background: rgba(14,165,233,0.15);
+  border: 1px solid rgba(14,165,233,0.3);
   border-radius: 20px;
   font-size: 11px;
-  color: #a5b4fc;
+  color: #38bdf8;
   white-space: nowrap;
 }
 .loading-state { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 48px; color: var(--text-secondary); }

@@ -86,15 +86,9 @@ class TaskController extends Controller
             'order'          => 'nullable|integer',
         ]);
 
-        // Check event access for non-managers
-        if (!in_array($user->role, ['superadmin', 'project_manager'])) {
-            $assigned = DB::table('event_personnel')
-                ->where('event_id', $data['event_id'])
-                ->where('user_id', $user->id)
-                ->exists();
-            if (!$assigned) {
-                return response()->json(['message' => 'Anda tidak terdaftar sebagai personel event ini.'], 403);
-            }
+        // Check task management permission in this event
+        if (!$this->canManageTasksInEvent($user, $data['event_id'])) {
+            return response()->json(['message' => 'Hanya Project Manager, Superadmin, atau koordinator event yang dapat membuat task.'], 403);
         }
 
         // Validate assignee is personnel of the event
@@ -147,7 +141,7 @@ class TaskController extends Controller
         $user = $request->user();
 
         if (!$this->canManageTask($user, $task)) {
-            return response()->json(['message' => 'Hanya Project Manager / Superadmin / pembuat task yang dapat mengedit.'], 403);
+            return response()->json(['message' => 'Hanya Project Manager, Superadmin, atau koordinator event yang dapat mengedit detail task.'], 403);
         }
 
         $data = $request->validate([
@@ -165,22 +159,8 @@ class TaskController extends Controller
             'order'          => 'nullable|integer',
         ]);
 
-        // Enforce that only managers (PM/Superadmin or managerial event personnel) can update major task details
-        $isManager = in_array($user->role, ['superadmin', 'project_manager']);
+        $isManager = $this->canManageTasksInEvent($user, $task->event_id);
         if (!$isManager) {
-            $personnel = DB::table('event_personnel')
-                ->where('event_id', $task->event_id)
-                ->where('user_id', $user->id)
-                ->first();
-            if ($personnel) {
-                $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
-                $isManager = in_array($roleInEvent, ['rundowncoordinator', 'rundownpic', 'eventplanner', 'eventcoordinator', 'projectmanager']);
-            }
-        }
-
-        if (!$isManager) {
-            // Staff biasa: hanya boleh edit deskripsi, catatan, status.
-            // Dilarang mengubah event_id, assigned_to, priority, due_date, due_time, dan title.
             $forbiddenFields = ['event_id', 'assigned_to', 'priority', 'due_date', 'due_time', 'title'];
             foreach ($forbiddenFields as $field) {
                 if (array_key_exists($field, $data) && $data[$field] != $task->{$field}) {
@@ -243,8 +223,8 @@ class TaskController extends Controller
     public function destroy(Request $request, Task $task)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['superadmin', 'project_manager'])) {
-            return response()->json(['message' => 'Hanya Project Manager / Superadmin yang dapat menghapus task.'], 403);
+        if (!$this->canManageTask($user, $task)) {
+            return response()->json(['message' => 'Hanya Project Manager, Superadmin, atau koordinator event yang dapat menghapus task.'], 403);
         }
         $task->delete();
         return response()->json(['message' => 'Task berhasil dihapus.']);
@@ -378,11 +358,51 @@ class TaskController extends Controller
             ->exists();
     }
 
-    private function canManageTask($user, Task $task): bool
+    private function canManageTasksInEvent($user, int $eventId): bool
     {
         if (in_array($user->role, ['superadmin', 'project_manager'])) {
             return true;
         }
-        return $task->created_by === $user->id;
+
+        $personnel = DB::table('event_personnel')
+            ->where('event_id', $eventId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$personnel) {
+            return false;
+        }
+
+        $role = strtolower(str_replace([' ', '_', '-'], '', $personnel->role_in_event ?? ''));
+        $translations = [
+            'koordinatorrundown' => 'rundowncoordinator',
+            'picrundown' => 'rundownpic',
+            'pjrundown' => 'rundownpic',
+            'stafrundown' => 'rundownpic',
+            'perencanaacara' => 'eventplanner',
+            'koordinatoracara' => 'eventcoordinator',
+        ];
+        if (isset($translations[$role])) {
+            $role = $translations[$role];
+        }
+
+        return in_array($role, [
+            'rundowncoordinator', 'rundownpic',
+            'eventplanner', 'eventcoordinator',
+            'projectmanager'
+        ]);
+    }
+
+    private function canManageTask($user, Task $task): bool
+    {
+        if ($this->canManageTasksInEvent($user, $task->event_id)) {
+            return true;
+        }
+
+        if ($task->created_by === $user->id) {
+            return $this->canAccessTask($user, $task);
+        }
+
+        return false;
     }
 }

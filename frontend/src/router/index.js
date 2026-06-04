@@ -39,6 +39,21 @@ const routes = [
         name: 'Rundown',
         component: () => import('../views/RundownView.vue'),
       },
+      {
+        path: 'logistics',
+        name: 'Logistics',
+        component: () => import('../views/LogisticsView.vue'),
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('../views/ProfileView.vue'),
+      },
+      {
+        path: 'chat',
+        name: 'Chat',
+        component: () => import('../views/ChatView.vue'),
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },

@@ -23,6 +23,16 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $currentUser = auth()->user();
+        if ($currentUser && $currentUser->organization) {
+            $currentUserCount = User::count();
+            if ($currentUserCount >= $currentUser->organization->max_users) {
+                return response()->json([
+                    'message' => "Kuota user untuk organisasi Anda telah mencapai batas maksimal ({$currentUser->organization->max_users} user)."
+                ], 422);
+            }
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',

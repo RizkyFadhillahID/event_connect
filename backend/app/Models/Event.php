@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Event extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\BelongsToOrganization;
 
     protected $fillable = [
+        'organization_id',
         'name',
         'description',
         'location',
@@ -53,6 +54,31 @@ class Event extends Model
     public function rundowns()
     {
         return $this->hasMany(EventRundown::class);
+    }
+
+    public function budgetAllocations()
+    {
+        return $this->hasMany(EventBudgetAllocation::class);
+    }
+
+    public function expenses()
+    {
+        return $this->hasMany(EventExpense::class);
+    }
+
+    public function logistics()
+    {
+        return $this->hasMany(EventLogistic::class);
+    }
+
+    public function report()
+    {
+        return $this->hasOne(EventReport::class);
+    }
+
+    public function guests()
+    {
+        return $this->hasMany(Guest::class, 'event_id');
     }
 
     public function taskStats(): array

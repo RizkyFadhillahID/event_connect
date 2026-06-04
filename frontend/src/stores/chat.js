@@ -17,7 +17,7 @@ function getEcho() {
     wssPort: Number(import.meta.env.VITE_REVERB_PORT ?? 443),
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
     enabledTransports: ['ws', 'wss'],
-    authEndpoint: 'http://localhost:8000/broadcasting/auth',
+    authEndpoint: (import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api') + '/broadcasting/auth',
     auth: {
       headers: {
         Authorization: 'Bearer ' + (localStorage.getItem('token') ?? ''),
@@ -34,11 +34,32 @@ export function resetEcho() {
   }
 }
 
+function triggerBrowserNotification(data) {
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    if (Notification.permission === 'granted') {
+      try {
+        const notification = new Notification(`Pesan Baru: ${data.user.name}`, {
+          body: data.message,
+          icon: '/favicon.ico',
+          tag: `event-chat-${data.event_id}`,
+          requireInteraction: false
+        })
+        notification.onclick = () => {
+          window.focus()
+        }
+      } catch (e) {
+        console.error('Error triggering notification:', e)
+      }
+    }
+  }
+}
+
 export const useChatStore = defineStore('chat', () => {
   // Use reactive() for nested maps — more reliable reactivity for in-place mutations
   const messagesByEvent = reactive({})   // { [eventId]: ChatMessage[] }
   const onlineByEvent  = reactive({})    // { [eventId]: Member[] }
   const unreadCounts   = reactive({})    // { [eventId]: number }
+  const activeEventId  = ref(null)
 
   // Plain Set — not rendered, no reactivity needed
   const subscribedChannels = new Set()
@@ -60,12 +81,56 @@ export const useChatStore = defineStore('chat', () => {
     messagesByEvent[eventId].splice(0, messagesByEvent[eventId].length, ...incoming)
   }
 
-  async function sendMessage(eventId, message) {
-    const res = await api.post(`/events/${eventId}/chat`, { message })
+  async function sendMessage(eventId, message, file = null) {
+    let payload = null
+    let headers = {}
+
+    if (file) {
+      const formData = new FormData()
+      formData.append('message', message ?? '')
+      formData.append('file', file)
+      payload = formData
+      headers = { 'Content-Type': 'multipart/form-data' }
+    } else {
+      payload = { message }
+    }
+
+    const res = await api.post(`/events/${eventId}/chat`, payload, { headers })
     ensureEvent(eventId)
     // Deduplicate: the WebSocket listener may also fire for our own message
     if (!messagesByEvent[eventId].find(m => m.id === res.data.id)) {
       messagesByEvent[eventId].push(res.data)
+    }
+  }
+
+  let userNotificationChannel = null
+
+  function subscribeToUserNotifications(currentUserId) {
+    if (!currentUserId || userNotificationChannel) return
+
+    userNotificationChannel = getEcho().private(`App.Models.User.${currentUserId}`)
+      .listen('.message.sent', (data) => {
+        const eventId = data.event_id
+        ensureEvent(eventId)
+
+        // Deduplicate
+        if (!messagesByEvent[eventId].find(m => m.id === data.id)) {
+          messagesByEvent[eventId].push(data)
+          
+          if (data.user?.id !== currentUserId) {
+            if (activeEventId.value !== eventId) {
+              unreadCounts[eventId] = (unreadCounts[eventId] || 0) + 1
+              triggerBrowserNotification(data)
+            }
+          }
+        }
+      })
+  }
+
+  function unsubscribeFromUserNotifications(currentUserId) {
+    if (userNotificationChannel) {
+      getEcho().leave(`App.Models.User.${currentUserId}`)
+      userNotificationChannel = null
     }
   }
 
@@ -96,7 +161,9 @@ export const useChatStore = defineStore('chat', () => {
         if (!messagesByEvent[eventId].find(m => m.id === data.id)) {
           messagesByEvent[eventId].push(data)
           if (data.user?.id !== currentUserId) {
-            unreadCounts[eventId] = (unreadCounts[eventId] || 0) + 1
+            if (activeEventId.value !== eventId) {
+              unreadCounts[eventId] = (unreadCounts[eventId] || 0) + 1
+            }
           }
         }
       })
@@ -125,10 +192,13 @@ export const useChatStore = defineStore('chat', () => {
     messagesByEvent,
     onlineByEvent,
     unreadCounts,
+    activeEventId,
     eventGroups,
     loadingGroups,
     loadHistory,
     sendMessage,
+    subscribeToUserNotifications,
+    unsubscribeFromUserNotifications,
     subscribeToEvent,
     unsubscribeFromEvent,
     clearUnread,

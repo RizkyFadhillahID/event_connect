@@ -42,6 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'platform' => [
+            'driver' => 'sanctum',
+            'provider' => 'platform_admins',
+        ],
     ],
 
     /*
@@ -66,11 +70,10 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'platform_admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\PlatformAdmin::class,
+        ],
     ],
 
     /*

@@ -39,6 +39,16 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
+        $currentUser = auth()->user();
+        if ($currentUser && $currentUser->organization) {
+            $currentEventCount = Event::count();
+            if ($currentEventCount >= $currentUser->organization->max_events) {
+                return response()->json([
+                    'message' => "Kuota event untuk organisasi Anda telah mencapai batas maksimal ({$currentUser->organization->max_events} event)."
+                ], 422);
+            }
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -156,6 +166,22 @@ class EventController extends Controller
                 'message' => 'Event tidak dapat dihapus. Periksa relasi data terkait terlebih dahulu.',
             ], 409);
         }
+    }
+
+    public function dashboardFinancials(Request $request)
+    {
+        $user = $request->user();
+        $events = Event::when(
+            !in_array($user->role, ['superadmin', 'project_manager']),
+            fn($q) => $q->whereHas('personnel', fn($inner) => $inner->where('users.id', $user->id))
+        )
+        ->select('id', 'name', 'budget')
+        ->withSum('expenses as total_spent', 'amount')
+        ->orderBy('created_at', 'desc')
+        ->take(5)
+        ->get();
+
+        return response()->json($events);
     }
 
     public function allUsers()

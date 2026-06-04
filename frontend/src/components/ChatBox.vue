@@ -130,6 +130,7 @@ watch(unread, (val) => {
 })
 
 onMounted(async () => {
+  chatStore.activeEventId = props.eventId
   chatStore.subscribeToEvent(props.eventId, currentUser.value?.id)
   await chatStore.loadHistory(props.eventId)
   await nextTick()
@@ -139,6 +140,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   chatStore.unsubscribeFromEvent(props.eventId)
+  if (chatStore.activeEventId === props.eventId) {
+    chatStore.activeEventId = null
+  }
 })
 
 // Helpers
@@ -231,7 +235,7 @@ function formatTime(iso) {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--primary);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -279,7 +283,7 @@ function formatTime(iso) {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--primary);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -323,7 +327,7 @@ function formatTime(iso) {
 }
 
 .chat-message--own .msg-bubble {
-  background: #6366f1;
+  background: var(--primary);
   color: #fff;
   border-radius: 12px 12px 4px 12px;
 }
@@ -360,14 +364,14 @@ function formatTime(iso) {
 }
 
 .chat-input input:focus {
-  border-color: #6366f1;
+  border-color: var(--primary);
 }
 
 .chat-input button {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #6366f1;
+  background: var(--primary);
   border: none;
   color: #fff;
   display: flex;
@@ -379,11 +383,11 @@ function formatTime(iso) {
 }
 
 .chat-input button:hover:not(:disabled) {
-  background: #4f46e5;
+  background: #0284c7;
 }
 
 .chat-input button:disabled {
-  background: #c7d2fe;
+  background: rgba(14, 165, 233, 0.3);
   cursor: not-allowed;
 }
 </style>

@@ -6,12 +6,12 @@
          Shown when no event is selected yet
     ══════════════════════════════════════════════════════ -->
     <template v-if="!selectedEvent">
-      <div class="page-header glass-card">
+      <!-- <div class="page-header glass-card">
         <div class="header-left">
           <h2>Task &amp; Workflow Management</h2>
           <p>Pilih event terlebih dahulu untuk mulai mengelola task</p>
         </div>
-      </div>
+      </div> -->
 
       <div class="event-search-bar glass-card">
         <Search :size="16" style="color:rgba(255,255,255,0.4);flex-shrink:0" />
@@ -123,7 +123,7 @@
               <List :size="18" />
             </button>
           </div>
-          <button class="btn btn-primary" @click="openCreate">
+          <button v-if="canManageTasks" class="btn btn-primary" @click="openCreate">
             <Plus :size="18" /> Tambah Task
           </button>
         </div>
@@ -181,8 +181,8 @@
             <div class="card-top">
               <span class="priority-badge" :class="`prio-${task.priority}`">{{ priorityLabel(task.priority) }}</span>
               <div class="card-actions" @click.stop>
-                <button class="icon-btn" @click="openEdit(task)" title="Edit"><Edit :size="14" /></button>
-                <button v-if="auth.canManageTasks" class="icon-btn danger" @click="confirmDelete(task)" title="Hapus"><Trash2 :size="14" /></button>
+                <button v-if="canManageTasks" class="icon-btn" @click="openEdit(task)" title="Edit"><Edit :size="14" /></button>
+                <button v-if="canManageTasks" class="icon-btn danger" @click="confirmDelete(task)" title="Hapus"><Trash2 :size="14" /></button>
               </div>
             </div>
             <div class="card-title">{{ task.title }}</div>
@@ -207,7 +207,7 @@
             </div>
             <!-- Status quick-change -->
             <select
-              v-if="task.assigned_to === auth.user?.id || auth.canManageTasks"
+              v-if="task.assigned_to === auth.user?.id || canManageTasks"
               class="status-select"
               :value="task.status"
               @change="quickStatus(task, $event.target.value)"
@@ -258,7 +258,7 @@
               <td><span class="priority-badge" :class="`prio-${task.priority}`">{{ priorityLabel(task.priority) }}</span></td>
               <td>
                 <select
-                  v-if="task.assigned_to === auth.user?.id || auth.canManageTasks"
+                  v-if="task.assigned_to === auth.user?.id || canManageTasks"
                   class="status-select-inline"
                   :class="`status-${task.status}`"
                   :value="task.status"
@@ -290,8 +290,8 @@
               </td>
               <td @click.stop>
                 <div style="display:flex;gap:6px">
-                  <button class="btn btn-glass btn-sm" @click="openEdit(task)" title="Edit"><Edit :size="16" /></button>
-                  <button v-if="auth.canManageTasks" class="btn btn-danger btn-sm" @click="confirmDelete(task)" title="Hapus"><Trash2 :size="16" /></button>
+                  <button v-if="canManageTasks" class="btn btn-glass btn-sm" @click="openEdit(task)" title="Edit"><Edit :size="16" /></button>
+                  <button v-if="canManageTasks" class="btn btn-danger btn-sm" @click="confirmDelete(task)" title="Hapus"><Trash2 :size="16" /></button>
                 </div>
               </td>
             </tr>
@@ -319,7 +319,7 @@
           <form @submit.prevent="submitForm">
             <div class="form-group">
               <label>Judul Task *</label>
-              <input v-model="form.title" class="glass-input" required placeholder="e.g. Siapkan dekorasi panggung"/>
+              <input v-model="form.title" class="glass-input" required placeholder="Siapkan dekorasi panggung"/>
             </div>
             <div class="form-group">
               <label>Deskripsi</label>
@@ -332,7 +332,7 @@
               </div>
               <div class="form-group">
                 <label>Kategori</label>
-                <input v-model="form.category" class="glass-input" placeholder="Logistics, Creative, Technical…"/>
+                <input v-model="form.category" class="glass-input" placeholder="Logistik, Kreatif, Teknis..."/>
               </div>
             </div>
             <div class="form-row">
@@ -406,7 +406,7 @@
               <h2 style="margin-bottom:0">{{ detailTask.title }}</h2>
             </div>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-glass btn-sm" @click="openEdit(detailTask)"><Edit :size="16" /></button>
+              <button v-if="canManageTasks" class="btn btn-glass btn-sm" @click="openEdit(detailTask)"><Edit :size="16" /></button>
               <button class="btn btn-glass btn-sm" @click="detailTask = null"><X :size="18" /></button>
             </div>
           </div>
@@ -453,7 +453,7 @@
               </div>
 
               <!-- Status change (assignee or manager) -->
-              <div v-if="detailTask.assigned_to === auth.user?.id || auth.canManageTasks" class="status-changer">
+              <div v-if="detailTask.assigned_to === auth.user?.id || canManageTasks" class="status-changer">
                 <label style="font-size:12px;color:var(--text-muted);margin-bottom:6px;display:block">Ubah Status</label>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <button
@@ -606,7 +606,7 @@ const filters = ref({
 const priorities = [
   { value: 'urgent', label: 'Urgent',  color: '#ef4444' },
   { value: 'high',   label: 'High',    color: '#f59e0b' },
-  { value: 'medium', label: 'Medium',  color: '#6366f1' },
+  { value: 'medium', label: 'Medium',  color: '#0ea5e9' },
   { value: 'low',    label: 'Low',     color: '#6b7280' },
 ]
 
@@ -642,6 +642,28 @@ const tasksByStatus = computed(() => {
     if (map[t.status]) map[t.status].push(t)
   }
   return map
+})
+
+const currentUserPersonnel = computed(() => {
+  return personnelList.value.find(p => p.id === auth.user?.id)
+})
+
+const currentUserEventRole = computed(() => {
+  const r = currentUserPersonnel.value?.role_in_event
+  if (!r) return ''
+  return r.toLowerCase().replace(/[\s_]+/g, '')
+})
+
+const canManageTasks = computed(() => {
+  const globalRole = auth.user?.role
+  if (['superadmin', 'project_manager'].includes(globalRole)) return true
+  
+  const eventRole = currentUserEventRole.value
+  return [
+    'rundowncoordinator', 'rundownpic',
+    'eventplanner', 'eventcoordinator',
+    'projectmanager'
+  ].includes(eventRole)
 })
 
 // ─── Helpers ──────────────────────────────────────────────
@@ -908,7 +930,7 @@ onMounted(async () => {
 /* View toggle */
 .view-toggle { display: flex; background: rgba(255,255,255,0.08); border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden; }
 .toggle-btn { padding: 7px 12px; background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; transition: all 0.2s; }
-.toggle-btn.active { background: rgba(99,102,241,0.3); color: var(--text-primary); }
+.toggle-btn.active { background: rgba(14, 165, 233, 0.3); color: var(--text-primary); }
 
 /* Filters */
 .filters { display: flex; gap: 10px; padding: 14px 20px; flex-wrap: wrap; align-items: center; }
@@ -947,7 +969,7 @@ onMounted(async () => {
 .task-card.overdue { border-color: rgba(239,68,68,0.4); }
 .task-card.priority-urgent { border-left: 3px solid #ef4444; }
 .task-card.priority-high   { border-left: 3px solid #f59e0b; }
-.task-card.priority-medium { border-left: 3px solid #6366f1; }
+.task-card.priority-medium { border-left: 3px solid #0ea5e9; }
 .task-card.priority-low    { border-left: 3px solid #6b7280; }
 
 .card-top { display: flex; align-items: center; justify-content: space-between; }
@@ -977,13 +999,13 @@ onMounted(async () => {
   font-family: inherit;
   cursor: pointer;
 }
-.status-select option { background: #302b63; }
+.status-select option { background: #13243d; }
 
 /* Priority badges */
 .priority-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 .prio-urgent { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
 .prio-high   { background: rgba(245,158,11,0.2); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
-.prio-medium { background: rgba(99,102,241,0.2); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+.prio-medium { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
 .prio-low    { background: rgba(107,114,128,0.2); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
 
 /* Task status badge */
@@ -1020,10 +1042,10 @@ onMounted(async () => {
 
 .mini-progress { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); }
 .progress-bar { width: 60px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
-.progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); border-radius: 2px; transition: width 0.3s; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #0ea5e9, #10b981); border-radius: 2px; transition: width 0.3s; }
 
 /* Avatars */
-.avatar-xs { width: 22px; height: 22px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.avatar-xs { width: 22px; height: 22px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
 
 /* ─── DETAIL MODAL ─── */
 .detail-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; max-height: 75vh; overflow: hidden; }
@@ -1054,7 +1076,7 @@ onMounted(async () => {
 .comments-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 12px; min-height: 0; max-height: 300px; padding-right: 4px; }
 .empty-comments { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 12px; padding: 32px; }
 .comment-item { display: flex; gap: 10px; }
-.comment-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.comment-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .comment-body { flex: 1; min-width: 0; }
 .comment-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .comment-author { font-size: 12px; font-weight: 600; }
@@ -1072,13 +1094,13 @@ onMounted(async () => {
 .event-search-input::placeholder { color: rgba(255,255,255,0.3); }
 .event-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 .event-select-card { padding: 20px; cursor: pointer; transition: all 0.2s; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); }
-.event-select-card:hover { transform: translateY(-3px); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.08) !important; }
+.event-select-card:hover { transform: translateY(-3px); border-color: rgba(14, 165, 233, 0.5); background: rgba(14, 165, 233, 0.08) !important; }
 .esc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .esc-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.dot-draft { background: #6b7280; } .dot-active { background: #6366f1; } .dot-ongoing { background: #10b981; } .dot-completed { background: #3b82f6; } .dot-cancelled { background: #ef4444; }
+.dot-draft { background: #6b7280; } .dot-active { background: #0ea5e9; } .dot-ongoing { background: #10b981; } .dot-completed { background: #3b82f6; } .dot-cancelled { background: #ef4444; }
 .esc-status-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 20px; }
 .badge-ev-draft { background: rgba(107,114,128,0.2); color: #9ca3af; }
-.badge-ev-active { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+.badge-ev-active { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
 .badge-ev-ongoing { background: rgba(16,185,129,0.2); color: #6ee7b7; }
 .badge-ev-completed { background: rgba(59,130,246,0.2); color: #93c5fd; }
 .badge-ev-cancelled { background: rgba(239,68,68,0.2); color: #fca5a5; }
@@ -1091,9 +1113,9 @@ onMounted(async () => {
 .esc-stat-lbl { font-size: 0.68rem; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-top: 2px; }
 .esc-progress-wrap { display: flex; align-items: center; gap: 8px; }
 .esc-progress-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
-.esc-progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); border-radius: 2px; }
+.esc-progress-fill { height: 100%; background: linear-gradient(90deg, #0ea5e9, #10b981); border-radius: 2px; }
 .esc-progress-pct { font-size: 0.75rem; color: rgba(255,255,255,0.5); white-space: nowrap; }
-.esc-cta { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 0.8rem; color: rgba(99,102,241,0.8); margin-top: 12px; }
+.esc-cta { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 0.8rem; color: rgba(14, 165, 233, 0.8); margin-top: 12px; }
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 20px; color: rgba(255,255,255,0.5); text-align: center; }
 
 /* ─── EVENT CONTEXT BAR ─── */
@@ -1105,7 +1127,7 @@ onMounted(async () => {
 .context-event-name { font-size: 1rem; font-weight: 600; color: #fff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .context-meta { display: flex; gap: 8px; flex-wrap: wrap; }
 .context-chip { font-size: 0.75rem; padding: 3px 10px; background: rgba(255,255,255,0.08); border-radius: 12px; color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.08); }
-.chip-ev-active { border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
+.chip-ev-active { border-color: rgba(14, 165, 233, 0.3); color: #38bdf8; }
 .chip-ev-ongoing { border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
 .chip-ev-completed { border-color: rgba(59,130,246,0.3); color: #93c5fd; }
 .chip-ev-cancelled { border-color: rgba(239,68,68,0.3); color: #fca5a5; }
@@ -1116,7 +1138,7 @@ onMounted(async () => {
 .ctx-lbl { font-size: 0.65rem; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-top: 2px; }
 .ctx-progress { display: flex; align-items: center; gap: 6px; }
 .ctx-bar { width: 60px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
-.ctx-bar-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); border-radius: 2px; }
+.ctx-bar-fill { height: 100%; background: linear-gradient(90deg, #0ea5e9, #10b981); border-radius: 2px; }
 .ctx-pct { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
 .context-actions { display: flex; gap: 8px; align-items: center; }
 

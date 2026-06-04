@@ -1,5 +1,5 @@
 <template>
-  <div class="fc-wrapper">
+  <div class="fc-wrapper" v-if="!isChatRoute">
     <!-- Floating Button -->
     <button class="fc-btn" :class="{ open: isOpen }" @click="toggleOpen" title="Event Group Chat">
       <MessageCircleIcon v-if="!isOpen" :size="24" />
@@ -16,9 +16,14 @@
             <MessageCircleIcon :size="16" />
             Event Group Chat
           </div>
-          <button class="fc-close-btn" @click="isOpen = false">
-            <XIcon :size="16" />
-          </button>
+          <div style="display:flex; align-items:center; gap:8px">
+            <button class="fc-expand-btn" @click="goToFullChat" title="Buka Halaman Penuh" style="background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: #38bdf8; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s;">
+              <Maximize2Icon :size="16" />
+            </button>
+            <button class="fc-close-btn" @click="isOpen = false">
+              <XIcon :size="16" />
+            </button>
+          </div>
         </div>
 
         <!-- Popup Body: left sidebar + right chat -->
@@ -98,7 +103,7 @@
                 </div>
               </div>
 
-              <!-- Messages -->
+              <!-- Messages List -->
               <div ref="msgEl" class="fc-messages" @scroll="onScroll">
                 <div v-if="loadingHistory" class="fc-msg-loading">
                   <Loader2Icon :size="20" class="spinner-icon" />
@@ -121,15 +126,76 @@
                         {{ msg.user.name }}
                         <span class="fc-msg-role">{{ roleTag(msg.user.role) }}</span>
                       </div>
-                      <div class="fc-msg-bubble">{{ msg.message }}</div>
+                      
+                      <div class="fc-msg-bubble">
+                        <!-- Text message -->
+                        <div v-if="msg.message" class="msg-text">{{ msg.message }}</div>
+                        
+                        <!-- File attachment rendering -->
+                        <div v-if="msg.file_url" class="msg-attachment">
+                          <!-- Photo attachment -->
+                          <div v-if="msg.file_type === 'image'" class="msg-image-wrap">
+                            <img :src="msg.file_url" class="msg-image-preview" @click="openImage(msg.file_url)" alt="Attached Photo" />
+                          </div>
+                          
+                          <!-- Document file attachment -->
+                          <a v-else :href="msg.file_url" target="_blank" class="msg-file-card" :download="msg.file_name" title="Klik untuk mengunduh berkas">
+                            <FileTextIcon :size="18" class="file-card-icon" />
+                            <div class="file-card-info">
+                              <div class="file-card-name">{{ msg.file_name }}</div>
+                              <div class="file-card-download">Unduh Lampiran</div>
+                            </div>
+                            <DownloadIcon :size="14" class="file-card-arrow" />
+                          </a>
+                        </div>
+                      </div>
+                      
                       <div class="fc-msg-time">{{ formatTime(msg.created_at) }}</div>
                     </div>
                   </div>
                 </template>
               </div>
 
-              <!-- Input -->
+              <!-- Selected File Preview Bar -->
+              <div v-if="selectedFile" class="chat-preview-bar">
+                <div class="preview-info">
+                  <ImageIcon v-if="selectedFileType === 'image'" :size="14" class="preview-icon" />
+                  <FileIcon v-else :size="14" class="preview-icon" />
+                  <span class="preview-name" :title="selectedFile.name">{{ selectedFile.name }}</span>
+                  <span class="preview-size">({{ formatSize(selectedFile.size) }})</span>
+                </div>
+                <button type="button" class="preview-cancel-btn" @click="cancelFile" title="Batalkan unggahan">
+                  <XIcon :size="12" />
+                </button>
+              </div>
+
+              <!-- Input Row -->
               <form class="fc-input-row" @submit.prevent="send">
+                <!-- Hidden inputs -->
+                <input ref="fileInput" type="file" style="display: none;" @change="onFileSelected" />
+                <input ref="imageInput" type="file" accept="image/*" style="display: none;" @change="onFileSelected" />
+
+                <!-- Input actions -->
+                <button 
+                  type="button" 
+                  class="attachment-btn" 
+                  :class="{ disabled: authStore.organization?.plan === 'free' }"
+                  @click="triggerFileInput" 
+                  title="Kirim Berkas"
+                >
+                  <PaperclipIcon :size="16" />
+                </button>
+                <button 
+                  type="button" 
+                  class="attachment-btn" 
+                  :class="{ disabled: authStore.organization?.plan === 'free' }"
+                  @click="triggerImageInput" 
+                  title="Kirim Foto / Kamera"
+                >
+                  <CameraIcon :size="16" />
+                </button>
+
+                <!-- Text input -->
                 <input
                   ref="inputEl"
                   v-model="inputText"
@@ -139,8 +205,10 @@
                   autocomplete="off"
                   @keydown.enter.exact.prevent="send"
                 />
-                <button type="submit" class="fc-send-btn" :disabled="!inputText.trim() || sending">
-                  <SendIcon :size="16" />
+                
+                <button type="submit" class="fc-send-btn" :disabled="(!inputText.trim() && !selectedFile) || sending">
+                  <SendIcon :size="16" v-if="!sending" />
+                  <Loader2Icon :size="16" class="spinner-icon" v-else />
                 </button>
               </form>
             </template>
@@ -148,18 +216,35 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Lightbox Modal -->
+    <Transition name="fade">
+      <div v-if="lightboxUrl" class="lightbox-overlay" @click="lightboxUrl = null">
+        <img :src="lightboxUrl" class="lightbox-img" alt="Zoomed Photo" />
+        <button class="lightbox-close" @click="lightboxUrl = null">
+          <XIcon :size="24" />
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import { MessageCircleIcon, XIcon, SearchIcon, Loader2Icon, SendIcon } from 'lucide-vue-next'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { 
+  MessageCircleIcon, XIcon, SearchIcon, Loader2Icon, SendIcon,
+  PaperclipIcon, CameraIcon, ImageIcon, FileIcon, FileTextIcon, DownloadIcon,
+  Maximize2Icon
+} from 'lucide-vue-next'
+import { useRoute, useRouter } from 'vue-router'
 import { useChatStore } from '../stores/chat'
 import { useAuthStore } from '../stores/auth'
 
 const chatStore = useChatStore()
 const authStore = useAuthStore()
 const currentUser = computed(() => authStore.user)
+const route = useRoute()
+const router = useRouter()
 
 const isOpen = ref(false)
 const search = ref('')
@@ -171,6 +256,14 @@ const loadingHistory = ref(false)
 const msgEl = ref(null)
 const inputEl = ref(null)
 const userScrolledUp = ref(false)
+const isChatRoute = computed(() => route.path === '/chat')
+
+// File attachment references & states
+const fileInput = ref(null)
+const imageInput = ref(null)
+const selectedFile = ref(null)
+const selectedFileType = ref(null)
+const lightboxUrl = ref(null)
 
 // Total unread across all events
 const totalUnread = computed(() =>
@@ -183,7 +276,6 @@ const filteredGroups = computed(() => {
   return chatStore.eventGroups.filter(ev => ev.name.toLowerCase().includes(q))
 })
 
-// Access reactive maps directly — Vue tracks in-place mutations (push/splice)
 const messages     = computed(() => chatStore.messagesByEvent[activeEventId.value] ?? [])
 const onlineMembers = computed(() => chatStore.onlineByEvent[activeEventId.value]  ?? [])
 const loadingGroups = computed(() => chatStore.loadingGroups)
@@ -193,39 +285,119 @@ function lastMessagePreview(eventId) {
   if (!msgs?.length) return 'Belum ada pesan'
   const last = msgs[msgs.length - 1]
   const prefix = last.user.id === currentUser.value?.id ? 'Kamu: ' : `${last.user.name.split(' ')[0]}: `
-  return prefix + (last.message.length > 28 ? last.message.slice(0, 28) + '…' : last.message)
+  
+  if (last.file_url) {
+    const typeLabel = last.file_type === 'image' ? '📷 Foto' : '📎 Berkas'
+    const suffix = last.message ? `: ${last.message}` : ''
+    const content = `${typeLabel}${suffix}`
+    return prefix + (content.length > 25 ? content.slice(0, 25) + '…' : content)
+  }
+  
+  return prefix + (last.message.length > 25 ? last.message.slice(0, 25) + '…' : last.message)
 }
+
+watch(() => currentUser.value?.id, (newId, oldId) => {
+  if (oldId) {
+    chatStore.unsubscribeFromUserNotifications(oldId)
+  }
+  if (newId) {
+    chatStore.subscribeToUserNotifications(newId)
+  }
+}, { immediate: true })
 
 async function toggleOpen() {
   isOpen.value = !isOpen.value
-  if (!isOpen.value) return
-  // Load groups first time
+  if (!isOpen.value) {
+    cancelFile()
+    return
+  }
+  
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission()
+  }
+
   if (chatStore.eventGroups.length === 0) {
     await chatStore.loadEventGroups()
   }
-  // Pre-subscribe to all visible events so messages arrive even before selecting
-  chatStore.eventGroups.forEach(ev => {
-    chatStore.subscribeToEvent(ev.id, currentUser.value?.id)
-  })
+}
+
+function goToFullChat() {
+  isOpen.value = false
+  router.push('/chat')
+}
+
+function triggerFileInput() {
+  if (authStore.organization?.plan === 'free') {
+    alert('Unggah berkas tidak didukung pada paket Free. Silakan hubungi admin untuk upgrade ke paket Business atau Enterprise.')
+    return
+  }
+  fileInput.value?.click()
+}
+
+function triggerImageInput() {
+  if (authStore.organization?.plan === 'free') {
+    alert('Unggah foto tidak didukung pada paket Free. Silakan hubungi admin untuk upgrade ke paket Business atau Enterprise.')
+    return
+  }
+  imageInput.value?.click()
+}
+
+function onFileSelected(e) {
+  const file = e.target.files[0]
+  if (!file) return
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert('Ukuran berkas maksimal adalah 10 MB.')
+    return
+  }
+
+  selectedFile.value = file
+  selectedFileType.value = file.type.startsWith('image/') ? 'image' : 'file'
+
+  if (fileInput.value) fileInput.value.value = ''
+  if (imageInput.value) imageInput.value.value = ''
+}
+
+function cancelFile() {
+  selectedFile.value = null
+  selectedFileType.value = null
+}
+
+function formatSize(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+function openImage(url) {
+  lightboxUrl.value = url
 }
 
 async function selectEvent(ev) {
   if (activeEventId.value === ev.id) return
+  
+  if (activeEventId.value) {
+    chatStore.unsubscribeFromEvent(activeEventId.value)
+  }
+
   activeEventId.value = ev.id
+  chatStore.activeEventId = ev.id
   activeEvent.value = ev
+  cancelFile()
+
   chatStore.subscribeToEvent(ev.id, currentUser.value?.id)
   chatStore.clearUnread(ev.id)
 
   const hasCached = (chatStore.messagesByEvent[ev.id]?.length ?? 0) > 0
 
   if (hasCached) {
-    // Show cached messages immediately, then refresh silently in the background
     await nextTick()
     scrollToBottom()
     inputEl.value?.focus()
-    chatStore.loadHistory(ev.id)  // fire-and-forget refresh
+    chatStore.loadHistory(ev.id)
   } else {
-    // No cache yet — show spinner until loaded
     loadingHistory.value = true
     await chatStore.loadHistory(ev.id)
     loadingHistory.value = false
@@ -237,13 +409,19 @@ async function selectEvent(ev) {
 
 async function send() {
   const text = inputText.value.trim()
-  if (!text || !activeEventId.value) return
+  const file = selectedFile.value
+  if (!text && !file) return
+  
   inputText.value = ''
+  cancelFile()
   sending.value = true
   try {
-    await chatStore.sendMessage(activeEventId.value, text)
+    await chatStore.sendMessage(activeEventId.value, text, file)
     await nextTick()
     scrollToBottom()
+  } catch (e) {
+    console.error('Failed to send message:', e)
+    alert(e.response?.data?.message || 'Gagal mengirim pesan.')
   } finally {
     sending.value = false
     inputEl.value?.focus()
@@ -262,7 +440,6 @@ function onScroll() {
   userScrolledUp.value = el.scrollHeight - el.scrollTop - el.clientHeight > 60
 }
 
-// Auto-scroll on new messages unless user scrolled up
 watch(messages, async () => {
   if (!userScrolledUp.value) {
     await nextTick()
@@ -270,28 +447,30 @@ watch(messages, async () => {
   }
 }, { deep: true })
 
-// Clear unread when the event is active and popup is open
 watch([isOpen, activeEventId], ([open, evId]) => {
   if (open && evId) chatStore.clearUnread(evId)
 })
 
-// Re-subscribe after groups load (first open)
-watch(() => chatStore.eventGroups, (groups) => {
-  if (isOpen.value && groups.length) {
-    groups.forEach(ev => chatStore.subscribeToEvent(ev.id, currentUser.value?.id))
+watch(isOpen, (open) => {
+  if (!open && activeEventId.value) {
+    chatStore.unsubscribeFromEvent(activeEventId.value)
+    activeEventId.value = null
+    chatStore.activeEventId = null
+    activeEvent.value = null
+    cancelFile()
   }
 })
 
 // Helpers
-const avatarColors = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6']
+const avatarColors = ['#0ea5e9','#0d9488','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6']
 function avatarColor(name = '') {
   const idx = name.charCodeAt(0) % avatarColors.length
   return { background: avatarColors[idx] }
 }
 
 function roleTag(role) {
-  const map = { superadmin: 'SA', project_manager: 'PM', personnel: 'Staff' }
-  return map[role] ?? ''
+  const map = { superadmin: 'SA', project_manager: 'PM', staff: 'Staff' }
+  return map[role] ?? role
 }
 
 function formatTime(iso) {
@@ -317,24 +496,30 @@ function formatTime(iso) {
   gap: 12px;
 }
 
+@media (max-width: 768px) {
+  .fc-wrapper {
+    display: none !important;
+  }
+}
+
 .fc-btn {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   border: none;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(99,102,241,0.5);
+  box-shadow: 0 8px 24px rgba(14,165,233,0.4);
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
   flex-shrink: 0;
 }
-.fc-btn:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(99,102,241,0.6); }
-.fc-btn.open { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+.fc-btn:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(14,165,233,0.5); }
+.fc-btn.open { background: linear-gradient(135deg, var(--primary-light), var(--secondary)); }
 
 .fc-btn-badge {
   position: absolute;
@@ -348,7 +533,7 @@ function formatTime(iso) {
   padding: 2px 5px;
   min-width: 18px;
   text-align: center;
-  border: 2px solid #1e1b4b;
+  border: 2px solid #0f172a;
   line-height: 1.2;
 }
 
@@ -359,9 +544,9 @@ function formatTime(iso) {
   right: 0;
   width: 720px;
   height: 520px;
-  background: rgba(20, 18, 58, 0.97);
+  background: rgba(15, 23, 42, 0.97);
   backdrop-filter: blur(30px);
-  border: 1px solid rgba(99,102,241,0.3);
+  border: 1px solid rgba(14,165,233,0.3);
   border-radius: 20px;
   box-shadow: 0 24px 64px rgba(0,0,0,0.6);
   display: flex;
@@ -375,8 +560,8 @@ function formatTime(iso) {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: rgba(99,102,241,0.15);
-  border-bottom: 1px solid rgba(99,102,241,0.2);
+  background: rgba(14,165,233,0.15);
+  border-bottom: 1px solid rgba(14,165,233,0.2);
   flex-shrink: 0;
 }
 .fc-popup-title {
@@ -391,7 +576,7 @@ function formatTime(iso) {
   background: rgba(255,255,255,0.1);
   border: none;
   border-radius: 8px;
-  color: #a5b4fc;
+  color: #38bdf8;
   width: 28px;
   height: 28px;
   display: flex;
@@ -415,7 +600,7 @@ function formatTime(iso) {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(99,102,241,0.2);
+  border-right: 1px solid rgba(14,165,233,0.2);
   background: rgba(0,0,0,0.15);
 }
 
@@ -424,7 +609,7 @@ function formatTime(iso) {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(99,102,241,0.15);
+  border-bottom: 1px solid rgba(14,165,233,0.15);
   flex-shrink: 0;
 }
 .fc-search-icon { color: #6b7280; flex-shrink: 0; }
@@ -466,8 +651,8 @@ function formatTime(iso) {
   transition: background 0.15s;
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
-.fc-group-item:hover { background: rgba(99,102,241,0.15); }
-.fc-group-item.active { background: rgba(99,102,241,0.25); }
+.fc-group-item:hover { background: rgba(14,165,233,0.15); }
+.fc-group-item.active { background: rgba(14,165,233,0.25); }
 
 .fc-group-avatar {
   width: 38px;
@@ -505,7 +690,7 @@ function formatTime(iso) {
 
 .fc-group-meta { flex-shrink: 0; }
 .fc-unread-badge {
-  background: #6366f1;
+  background: var(--primary);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -541,7 +726,7 @@ function formatTime(iso) {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(99,102,241,0.2);
+  border-bottom: 1px solid rgba(14,165,233,0.2);
   background: rgba(0,0,0,0.1);
   flex-shrink: 0;
 }
@@ -656,8 +841,8 @@ function formatTime(iso) {
   padding: 0 4px;
 }
 .fc-msg-role {
-  background: rgba(99,102,241,0.3);
-  color: #a5b4fc;
+  background: rgba(14,165,233,0.3);
+  color: #38bdf8;
   font-size: 9px;
   border-radius: 3px;
   padding: 0 4px;
@@ -674,7 +859,7 @@ function formatTime(iso) {
   border: 1px solid rgba(255,255,255,0.07);
 }
 .fc-msg--own .fc-msg-bubble {
-  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   border-radius: 12px 12px 4px 12px;
   border-color: transparent;
 }
@@ -685,20 +870,162 @@ function formatTime(iso) {
 }
 .fc-msg--own .fc-msg-time { text-align: right; }
 
+/* Document & Image Attachments Styling */
+.msg-attachment {
+  margin-top: 6px;
+}
+.msg-image-wrap {
+  border-radius: 6px;
+  overflow: hidden;
+  max-width: 220px;
+  max-height: 150px;
+  cursor: zoom-in;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: opacity 0.2s;
+}
+.msg-image-wrap:hover {
+  opacity: 0.9;
+}
+.msg-image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.msg-file-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: background 0.2s;
+  max-width: 240px;
+}
+.msg-file-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.file-card-icon {
+  color: var(--primary-light);
+  flex-shrink: 0;
+}
+.file-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.file-card-name {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-card-download {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.file-card-arrow {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* File Preview Bar */
+.chat-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(14, 165, 233, 0.1);
+  border-top: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+.preview-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  min-width: 0;
+}
+.preview-icon {
+  color: var(--primary-light);
+  flex-shrink: 0;
+}
+.preview-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.preview-size {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.preview-cancel-btn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.preview-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
 /* Input row */
 .fc-input-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 10px 14px;
-  border-top: 1px solid rgba(99,102,241,0.2);
+  border-top: 1px solid rgba(14,165,233,0.2);
   background: rgba(0,0,0,0.1);
   flex-shrink: 0;
 }
+.attachment-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.attachment-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.attachment-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.attachment-btn.disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  transform: none;
+}
+
 .fc-input-row input {
   flex: 1;
   background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(99,102,241,0.3);
+  border: 1px solid rgba(14,165,233,0.3);
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 12px;
@@ -706,13 +1033,14 @@ function formatTime(iso) {
   outline: none;
   transition: border-color 0.15s;
 }
-.fc-input-row input:focus { border-color: #6366f1; }
+.fc-input-row input:focus { border-color: var(--primary); }
 .fc-input-row input::placeholder { color: #4b5563; }
+
 .fc-send-btn {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   border: none;
   color: #fff;
   display: flex;
@@ -725,13 +1053,51 @@ function formatTime(iso) {
 .fc-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .fc-send-btn:not(:disabled):hover { opacity: 0.85; }
 
+/* Lightbox Modal */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 20px;
+}
+.lightbox-img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+.lightbox-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* Scrollbar styling */
 .fc-group-list::-webkit-scrollbar,
 .fc-messages::-webkit-scrollbar { width: 4px; }
 .fc-group-list::-webkit-scrollbar-track,
 .fc-messages::-webkit-scrollbar-track { background: transparent; }
 .fc-group-list::-webkit-scrollbar-thumb,
-.fc-messages::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 2px; }
+.fc-messages::-webkit-scrollbar-thumb { background: rgba(14,165,233,0.3); border-radius: 2px; }
 
 /* Transition */
 .fc-pop-enter-active { transition: opacity 0.2s, transform 0.2s; }

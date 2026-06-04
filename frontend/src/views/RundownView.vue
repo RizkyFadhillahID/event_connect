@@ -1,27 +1,6 @@
 <template>
   <div class="rundown-page">
 
-    <!-- ───────────────────────── HEADER ───────────────────────── -->
-    <div class="page-header glass-card">
-      <div class="header-left">
-        <h2>Event Timeline &amp; Rundown</h2>
-        <p>Manajemen operasional sesi event secara realtime</p>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <div class="view-toggle">
-          <button class="toggle-btn" :class="{ active: viewMode === 'timeline' }" @click="viewMode = 'timeline'" title="Timeline">
-            <Clock :size="18" />
-          </button>
-          <button class="toggle-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="List">
-            <List :size="18" />
-          </button>
-        </div>
-        <button v-if="canManage" class="btn btn-primary" @click="openCreate">
-          <Plus :size="18" /> Tambah Sesi
-        </button>
-      </div>
-    </div>
-
     <!-- ───────────────────────── FILTERS ───────────────────────── -->
     <div class="filters glass-card">
       <select v-model="filters.event_id" class="glass-input" @change="onEventChange" style="max-width:220px">
@@ -37,6 +16,19 @@
         <option value="">Semua Status</option>
         <option v-for="s in rundownStatuses" :key="s.value" :value="s.value">{{ s.label }}</option>
       </select>
+      <div style="display:flex;gap:10px;align-items:center; margin-left: auto;">
+        <div class="view-toggle">
+          <button class="toggle-btn" :class="{ active: viewMode === 'timeline' }" @click="viewMode = 'timeline'" title="Timeline">
+            <Clock :size="18" />
+          </button>
+          <button class="toggle-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="List">
+            <List :size="18" />
+          </button>
+        </div>
+        <button v-if="canManage" class="btn btn-primary" @click="openCreate">
+          <Plus :size="18" /> Tambah Sesi
+        </button>
+      </div>
     </div>
 
     <!-- ───────────────────────── DATE TABS ───────────────────────── -->
@@ -201,7 +193,7 @@
             <!-- Title -->
             <div class="form-group full-width">
               <label>Nama Sesi *</label>
-              <input type="text" v-model="form.title" class="glass-input" placeholder="contoh: Opening Ceremony" />
+              <input type="text" v-model="form.title" class="glass-input" placeholder="Opening Ceremony" />
             </div>
 
             <!-- Category -->
@@ -237,7 +229,7 @@
             <!-- Location note -->
             <div class="form-group">
               <label>Lokasi (dalam venue)</label>
-              <input type="text" v-model="form.location_note" class="glass-input" placeholder="contoh: Stage Utama, Area Lobby" />
+              <input type="text" v-model="form.location_note" class="glass-input" placeholder="Stage Utama, Area Lobby" />
             </div>
 
             <!-- Order -->
@@ -812,8 +804,8 @@ function statusLabel(s) {
 }
 
 function statusColor(s) {
-  const m = { pending: '#6366f1', ready: '#3b82f6', live: '#10b981', delayed: '#f59e0b', completed: '#6b7280' }
-  return m[s] || '#6366f1'
+  const m = { pending: '#0ea5e9', ready: '#3b82f6', live: '#10b981', delayed: '#f59e0b', completed: '#6b7280' }
+  return m[s] || '#0ea5e9'
 }
 
 function categoryColor(c) {
@@ -877,7 +869,7 @@ onMounted(async () => {
 /* ── View toggle ── */
 .view-toggle { display: flex; background: rgba(255,255,255,0.08); border-radius: 8px; padding: 3px; gap: 3px; }
 .toggle-btn  { background: transparent; border: none; color: rgba(255,255,255,0.5); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; transition: all 0.2s; }
-.toggle-btn.active { background: rgba(99,102,241,0.4); color: #fff; }
+.toggle-btn.active { background: rgba(14, 165, 233, 0.4); color: #fff; }
 
 /* ── Filters ── */
 .filters { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 20px; align-items: center; }
@@ -885,7 +877,7 @@ onMounted(async () => {
 /* ── Date tabs ── */
 .date-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; }
 .date-tab  { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
-.date-tab:hover, .date-tab.active { background: rgba(99,102,241,0.35); border-color: rgba(99,102,241,0.6); color: #fff; }
+.date-tab:hover, .date-tab.active { background: rgba(14, 165, 233, 0.35); border-color: rgba(14, 165, 233, 0.6); color: #fff; }
 
 /* ── Empty / loading ── */
 .empty-state  { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 20px; color: rgba(255,255,255,0.5); text-align: center; }
@@ -896,12 +888,12 @@ onMounted(async () => {
 /* ── Day block (timeline) ── */
 .day-block { margin-bottom: 8px; }
 .day-header { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.5); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; padding-left: 4px; }
-.day-count  { background: rgba(99,102,241,0.25); color: #a5b4fc; border-radius: 10px; padding: 1px 8px; font-size: 0.75rem; }
+.day-count  { background: rgba(14, 165, 233, 0.25); color: #38bdf8; border-radius: 10px; padding: 1px 8px; font-size: 0.75rem; }
 
 /* ── Timeline track ── */
 .timeline-track  { display: flex; flex-direction: column; gap: 8px; }
 .timeline-item   { display: flex; gap: 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; cursor: pointer; transition: all 0.2s; overflow: hidden; }
-.timeline-item:hover { background: rgba(255,255,255,0.09); border-color: rgba(99,102,241,0.4); transform: translateX(3px); }
+.timeline-item:hover { background: rgba(255,255,255,0.09); border-color: rgba(14, 165, 233, 0.4); transform: translateX(3px); }
 .timeline-item.has-warning { border-left: 3px solid #fbbf24; }
 .timeline-item.status-live { border-left: 3px solid #10b981; background: rgba(16,185,129,0.07); }
 .timeline-item.status-delayed { border-left: 3px solid #f59e0b; }
@@ -927,7 +919,7 @@ onMounted(async () => {
 .category-badge    { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; color: #fff; text-transform: capitalize; }
 .category-badge-sm { font-size: 0.68rem; padding: 1px 7px; border-radius: 8px; color: #fff; text-transform: capitalize; }
 .status-badge      { font-size: 0.72rem; padding: 2px 9px; border-radius: 10px; font-weight: 600; text-transform: capitalize; }
-.badge-pending   { background: rgba(99,102,241,0.3);  color: #a5b4fc; }
+.badge-pending   { background: rgba(14, 165, 233, 0.3);  color: #38bdf8; }
 .badge-ready     { background: rgba(59,130,246,0.3);  color: #93c5fd; }
 .badge-live      { background: rgba(16,185,129,0.3);  color: #6ee7b7; }
 .badge-delayed   { background: rgba(245,158,11,0.3);  color: #fcd34d; }
@@ -952,7 +944,7 @@ onMounted(async () => {
 
 /* ── Buttons ── */
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
-.btn-primary   { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; }
+.btn-primary   { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; }
 .btn-primary:hover   { opacity: 0.9; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.15); }
@@ -979,13 +971,13 @@ onMounted(async () => {
 .form-group label { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
 .full-width  { grid-column: 1 / -1; }
 .glass-input { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px; padding: 8px 12px; font-size: 0.88rem; width: 100%; box-sizing: border-box; }
-.glass-input:focus { outline: none; border-color: rgba(99,102,241,0.6); background: rgba(255,255,255,0.1); }
-.glass-input option { background: #1e1b4b; color: #fff; }
+.glass-input:focus { outline: none; border-color: var(--primary); background: rgba(255,255,255,0.1); }
+.glass-input option { background: #13243d; color: #fff; }
 
 /* ── Dep selector ── */
 .dep-selector { display: flex; gap: 8px; align-items: center; }
 .dep-list     { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.dep-chip     { display: inline-flex; align-items: center; gap: 5px; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.3); color: #c7d2fe; border-radius: 10px; padding: 3px 10px; font-size: 0.78rem; }
+.dep-chip     { display: inline-flex; align-items: center; gap: 5px; background: rgba(14, 165, 233, 0.2); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8; border-radius: 10px; padding: 3px 10px; font-size: 0.78rem; }
 .dep-chip.dep-done { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
 .dep-chip.dep-warn { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3); color: #fcd34d; }
 .dep-remove   { background: none; border: none; cursor: pointer; color: inherit; padding: 0; display: flex; align-items: center; opacity: 0.6; }
@@ -1006,12 +998,12 @@ onMounted(async () => {
 .status-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .status-pill  { border: none; border-radius: 10px; padding: 5px 14px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; opacity: 0.5; }
 .status-pill.active, .status-pill:hover { opacity: 1; }
-.pill-pending   { background: rgba(99,102,241,0.3); color: #a5b4fc; }
+.pill-pending   { background: rgba(14, 165, 233, 0.3); color: #38bdf8; }
 .pill-ready     { background: rgba(59,130,246,0.3); color: #93c5fd; }
 .pill-live      { background: rgba(16,185,129,0.3); color: #6ee7b7; }
 .pill-delayed   { background: rgba(245,158,11,0.3); color: #fcd34d; }
 .pill-completed { background: rgba(107,114,128,0.3); color: #d1d5db; }
-.pill-pending.active   { background: rgba(99,102,241,0.6); }
+.pill-pending.active   { background: rgba(14, 165, 233, 0.6); }
 .pill-ready.active     { background: rgba(59,130,246,0.6); }
 .pill-live.active      { background: rgba(16,185,129,0.6); }
 .pill-delayed.active   { background: rgba(245,158,11,0.6); }
@@ -1021,8 +1013,8 @@ onMounted(async () => {
 .log-list   { display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; }
 .log-item   { display: flex; gap: 10px; align-items: flex-start; }
 .log-dot    { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-.dot-created   { background: #6366f1; }
-.dot-pending   { background: #6366f1; }
+.dot-created   { background: #0ea5e9; }
+.dot-pending   { background: #0ea5e9; }
 .dot-ready     { background: #3b82f6; }
 .dot-live      { background: #10b981; }
 .dot-delayed   { background: #f59e0b; }

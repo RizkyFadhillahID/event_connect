@@ -40,13 +40,37 @@ class ChatController extends Controller
         $this->authorizeEventAccess($request->user(), $event);
 
         $request->validate([
-            'message' => ['required', 'string', 'max:1000'],
+            'message' => ['required_without:file', 'nullable', 'string', 'max:1000'],
+            'file'    => ['nullable', 'file', 'max:10240'], // Max 10MB
         ]);
 
+        $filePath = null;
+        $fileName = null;
+        $fileType = null;
+
+        if ($request->hasFile('file')) {
+            $user = $request->user();
+            if ($user->organization && !$user->organization->hasFeature('chat_attachments')) {
+                return response()->json([
+                    'message' => 'Unggah berkas atau foto di chat tidak didukung pada paket Free. Silakan hubungi admin untuk upgrade ke paket Business atau Enterprise.'
+                ], 403);
+            }
+
+            $file = $request->file('file');
+            $filePath = $file->store('chat_attachments', 'public');
+            $fileName = $file->getClientOriginalName();
+            
+            $mime = $file->getMimeType();
+            $fileType = str_starts_with($mime, 'image/') ? 'image' : 'file';
+        }
+
         $message = ChatMessage::create([
-            'event_id' => $event->id,
-            'user_id'  => $request->user()->id,
-            'message'  => $request->message,
+            'event_id'  => $event->id,
+            'user_id'   => $request->user()->id,
+            'message'   => $request->message ?? '',
+            'file_path' => $filePath,
+            'file_name' => $fileName,
+            'file_type' => $fileType,
         ]);
 
         broadcast(new MessageSent($message));
@@ -78,6 +102,9 @@ class ChatController extends Controller
             'id'         => $message->id,
             'event_id'   => $message->event_id,
             'message'    => $message->message,
+            'file_url'   => $message->file_path ? asset('storage/' . $message->file_path) : null,
+            'file_name'  => $message->file_name,
+            'file_type'  => $message->file_type,
             'created_at' => $message->created_at->toISOString(),
             'user'       => [
                 'id'   => $message->user->id,

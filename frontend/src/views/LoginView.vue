@@ -13,8 +13,8 @@
             <path d="M12 20h16M20 12l8 8-8 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             <defs>
               <linearGradient id="grad" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stop-color="#6366f1"/>
-                <stop offset="100%" stop-color="#8b5cf6"/>
+                <stop offset="0%" stop-color="#0ea5e9"/>
+                <stop offset="100%" stop-color="#0d9488"/>
               </linearGradient>
             </defs>
           </svg>
@@ -47,7 +47,7 @@
               v-model="form.password"
               :type="showPass ? 'text' : 'password'"
               class="glass-input"
-              placeholder="••••••••"
+              placeholder="Masukkan kata sandi"
               autocomplete="current-password"
               required
             />
@@ -120,8 +120,8 @@ async function handleLogin() {
   animation: float 8s ease-in-out infinite;
   pointer-events: none;
 }
-.blob-1 { width: 400px; height: 400px; background: #6366f1; top: -100px; left: -100px; animation-delay: 0s; }
-.blob-2 { width: 300px; height: 300px; background: #8b5cf6; bottom: -50px; right: -50px; animation-delay: 2s; }
+.blob-1 { width: 400px; height: 400px; background: #0ea5e9; top: -100px; left: -100px; animation-delay: 0s; }
+.blob-2 { width: 300px; height: 300px; background: #0d9488; bottom: -50px; right: -50px; animation-delay: 2s; }
 .blob-3 { width: 250px; height: 250px; background: #06b6d4; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: 4s; }
 
 @keyframes float {
@@ -153,7 +153,7 @@ async function handleLogin() {
 .login-header h1 {
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+  background: linear-gradient(135deg, #0ea5e9, #0d9488, #06b6d4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

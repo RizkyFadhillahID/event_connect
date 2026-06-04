@@ -28,6 +28,28 @@ class RundownController extends Controller
             ->exists();
     }
 
+    private function getNormalizedEventRole($personnel): string
+    {
+        if (!$personnel || empty($personnel->role_in_event)) {
+            return '';
+        }
+        $role = strtolower(str_replace([' ', '_', '-'], '', $personnel->role_in_event));
+        $translations = [
+            'koordinatorrundown' => 'rundowncoordinator',
+            'picrundown' => 'rundownpic',
+            'pjrundown' => 'rundownpic',
+            'stafrundown' => 'rundownpic',
+            'perencanaacara' => 'eventplanner',
+            'koordinatoracara' => 'eventcoordinator',
+            'timteknis' => 'technicalteam',
+            'panitiateknis' => 'technicalteam',
+            'timtalent' => 'talentteam',
+            'logistik' => 'logisticsteam',
+            'timlogistik' => 'logisticsteam',
+        ];
+        return $translations[$role] ?? $role;
+    }
+
     private function canManageRundown($user, int $eventId): bool
     {
         if (in_array($user->role, ['superadmin', 'project_manager'])) {
@@ -43,7 +65,7 @@ class RundownController extends Controller
             return false;
         }
 
-        $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
+        $roleInEvent = $this->getNormalizedEventRole($personnel);
 
         return in_array($roleInEvent, [
             'rundowncoordinator', 'rundownpic',
@@ -77,7 +99,7 @@ class RundownController extends Controller
             return false;
         }
 
-        $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
+        $roleInEvent = $this->getNormalizedEventRole($personnel);
 
         // Roles that can update status of any category
         if (in_array($roleInEvent, [
@@ -384,8 +406,8 @@ class RundownController extends Controller
                 ->where('user_id', $user->id)
                 ->first();
             if ($personnel) {
-                $roleInEvent = strtolower(str_replace([' ', '_'], '', $personnel->role_in_event ?? ''));
-                $allowed = in_array($roleInEvent, ['rundowncoordinator', 'rundownpic', 'projectmanager']);
+                $roleInEvent = $this->getNormalizedEventRole($personnel);
+                $allowed = in_array($roleInEvent, ['rundowncoordinator', 'rundownpic', 'projectmanager', 'eventplanner', 'eventcoordinator']);
             }
         }
 

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../api/axios'
+import { resetEcho } from './chat'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
@@ -12,6 +13,9 @@ export const useAuthStore = defineStore('auth', () => {
   const canManageUsers = computed(() => isSuperAdmin.value)
   const canManageEvents = computed(() => isSuperAdmin.value || isProjectManager.value)
   const canManageTasks = computed(() => isSuperAdmin.value || isProjectManager.value)
+  const organization = computed(() => user.value?.organization || null)
+  const organizationName = computed(() => organization.value?.name || 'EventConnect')
+  const organizationLogo = computed(() => organization.value?.logo || null)
 
   async function login(email, password) {
     const res = await api.post('/login', { email, password })
@@ -29,8 +33,14 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      resetEcho()
     }
   }
 
-  return { user, token, isLoggedIn, isSuperAdmin, isProjectManager, canManageUsers, canManageEvents, canManageTasks, login, logout }
+  function updateCurrentUser(updatedUser) {
+    user.value = updatedUser
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+  }
+
+  return { user, token, isLoggedIn, isSuperAdmin, isProjectManager, canManageUsers, canManageEvents, canManageTasks, organization, organizationName, organizationLogo, login, logout, updateCurrentUser }
 })

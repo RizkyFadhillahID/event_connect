@@ -26,8 +26,11 @@ class RoleAccessTest extends TestCase
     {
         parent::setUp();
 
+        $orgId = DB::table('organizations')->where('slug', 'default')->value('id');
+
         // Create core users
         $this->superadmin = User::create([
+            'organization_id' => $orgId,
             'name' => 'Test Super Admin',
             'email' => 'superadmin_test@eventconnect.com',
             'phone' => '12345678901',
@@ -37,6 +40,7 @@ class RoleAccessTest extends TestCase
         ]);
 
         $this->pm = User::create([
+            'organization_id' => $orgId,
             'name' => 'Test PM',
             'email' => 'pm_test@eventconnect.com',
             'phone' => '12345678902',
@@ -46,6 +50,7 @@ class RoleAccessTest extends TestCase
         ]);
 
         $this->staff1 = User::create([
+            'organization_id' => $orgId,
             'name' => 'Test Staff 1',
             'email' => 'staff1_test@eventconnect.com',
             'phone' => '12345678903',
@@ -55,6 +60,7 @@ class RoleAccessTest extends TestCase
         ]);
 
         $this->staff2 = User::create([
+            'organization_id' => $orgId,
             'name' => 'Test Staff 2',
             'email' => 'staff2_test@eventconnect.com',
             'phone' => '12345678904',
@@ -65,6 +71,7 @@ class RoleAccessTest extends TestCase
 
         // Create an event
         $this->event = Event::create([
+            'organization_id' => $orgId,
             'name' => 'Test Event 2026',
             'description' => 'A test event description.',
             'location' => 'JCC Jakarta',

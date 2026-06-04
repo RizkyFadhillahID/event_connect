@@ -3,13 +3,13 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.12);
-  --glass-border: rgba(255, 255, 255, 0.25);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   --glass-blur: blur(20px);
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --secondary: #8b5cf6;
+  --primary: #0ea5e9;
+  --primary-light: #38bdf8;
+  --secondary: #0d9488;
   --accent: #06b6d4;
   --success: #10b981;
   --warning: #f59e0b;
@@ -22,7 +22,7 @@
 body {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 40%, #24243e 100%);
+  background: linear-gradient(135deg, #091326 0%, #13243d 40%, #0c182b 100%);
   background-attachment: fixed;
   color: var(--text-primary);
   overflow-x: hidden;
@@ -54,9 +54,9 @@ body {
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: white;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
 }
-.btn-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6); transform: translateY(-1px); }
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6); transform: translateY(-1px); }
 .btn-glass {
   background: rgba(255,255,255,0.1);
   color: var(--text-primary);
@@ -86,7 +86,7 @@ body {
 }
 .glass-input::placeholder { color: var(--text-muted); }
 .glass-input:focus { border-color: var(--primary); background: rgba(255,255,255,0.12); }
-.glass-input option { background: #302b63; color: white; }
+.glass-input option { background: #13243d; color: white; }
 select.glass-input {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='rgba(255,255,255,0.5)'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
@@ -108,7 +108,7 @@ select.glass-input {
   padding: 20px;
 }
 .modal-box {
-  background: rgba(30, 27, 75, 0.95);
+  background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(30px);
   border: 1px solid var(--glass-border);
   border-radius: 24px;
@@ -161,7 +161,7 @@ select.glass-input {
 .badge-inactive  { background: rgba(107,114,128,0.2); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
 .badge-draft     { background: rgba(107,114,128,0.2); color: #d1d5db; border: 1px solid rgba(107,114,128,0.3); }
 .badge-ongoing   { background: rgba(6,182,212,0.2);   color: #67e8f9; border: 1px solid rgba(6,182,212,0.3); }
-.badge-completed { background: rgba(99,102,241,0.2);  color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+.badge-completed { background: rgba(14, 165, 233, 0.15);  color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.25); }
 .badge-cancelled { background: rgba(239,68,68,0.2);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }

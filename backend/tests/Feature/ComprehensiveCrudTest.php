@@ -27,8 +27,11 @@ class ComprehensiveCrudTest extends TestCase
     {
         parent::setUp();
 
+        $orgId = DB::table('organizations')->where('slug', 'default')->value('id');
+
         // Create standard test users
         $this->superadmin = User::create([
+            'organization_id' => $orgId,
             'name' => 'Super Admin Test',
             'email' => 'superadmin@eventconnect.com',
             'phone' => '08111111111',
@@ -38,6 +41,7 @@ class ComprehensiveCrudTest extends TestCase
         ]);
 
         $this->pm = User::create([
+            'organization_id' => $orgId,
             'name' => 'Project Manager Test',
             'email' => 'pm@eventconnect.com',
             'phone' => '08222222222',
@@ -47,6 +51,7 @@ class ComprehensiveCrudTest extends TestCase
         ]);
 
         $this->staff1 = User::create([
+            'organization_id' => $orgId,
             'name' => 'Staff One Test',
             'email' => 'staff1@eventconnect.com',
             'phone' => '08333333333',
@@ -56,6 +61,7 @@ class ComprehensiveCrudTest extends TestCase
         ]);
 
         $this->staff2 = User::create([
+            'organization_id' => $orgId,
             'name' => 'Staff Two Test',
             'email' => 'staff2@eventconnect.com',
             'phone' => '08444444444',
@@ -66,6 +72,7 @@ class ComprehensiveCrudTest extends TestCase
 
         // Create a standard test event
         $this->event = Event::create([
+            'organization_id' => $orgId,
             'name' => 'Annual Gala Night 2026',
             'description' => 'Gala celebration event.',
             'location' => 'Grand Ballroom Mulia',
@@ -292,6 +299,7 @@ class ComprehensiveCrudTest extends TestCase
 
         // F. Delete Event (Create temp event then delete it)
         $tempEvent = Event::create([
+            'organization_id' => $this->pm->organization_id,
             'name' => 'Temp Event',
             'location' => 'Temp Office',
             'start_date' => '2026-09-01',
