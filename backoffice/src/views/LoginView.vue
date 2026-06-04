@@ -66,7 +66,7 @@
       </form>
 
       <div class="login-footer">
-        <p>© 2026 EventConnect Platform Owner · UNDIRA</p>
+        <p>© 2026 EventConnect Platform</p>
       </div>
     </div>
   </div>

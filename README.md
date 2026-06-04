@@ -428,4 +428,4 @@ Untuk dokumentasi teknis yang lebih detail, silakan baca:
 
 ## 📄 Lisensi
 
-Proyek ini dikembangkan sebagai bagian dari **Capstone Project** di Universitas Dian Nusantara (UNDIRA), Semester Genap 2025/2026.
+Proyek ini dikembangkan sebagai bagian dari **Capstone Project**, Semester Genap 2025/2026.

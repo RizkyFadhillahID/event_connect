@@ -101,7 +101,7 @@ class DatabaseSeeder extends Seeder
                 'created_by' => $pm->id,
             ],
             [
-                'name' => 'Gala Dinner Alumni UNDIRA',
+                'name' => 'Gala Dinner Alumni Akbar',
                 'description' => 'Malam gala dinner tahunan para alumni Universitas Darma Persada.',
                 'location' => 'Hotel Grand Sahid Jaya, Jakarta',
                 'start_date' => '2026-08-10',

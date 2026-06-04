@@ -76,7 +76,7 @@ CREATE TABLE `events` (
 INSERT INTO `events` (`id`, `name`, `description`, `location`, `start_date`, `end_date`, `start_time`, `end_time`, `status`, `budget`, `category`, `expected_participants`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'Festival Budaya Nusantara 2026', 'Festival budaya tahunan yang menampilkan keberagaman seni dan budaya Indonesia dari Sabang sampai Merauke.', 'Lapangan Banteng, Jakarta Pusat', '2026-06-15', '2026-06-17', '08:00:00', '22:00:00', 'active', 500000000.00, 'Cultural', 5000, 2, '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (2, 'Tech Summit Indonesia 2026', 'Konferensi teknologi terbesar di Indonesia dengan pembicara dari perusahaan teknologi global.', 'Jakarta Convention Center', '2026-07-20', '2026-07-22', '09:00:00', '18:00:00', 'draft', 750000000.00, 'Conference', 2000, 2, '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
-(3, 'Gala Dinner Alumni UNDIRA', 'Malam gala dinner tahunan para alumni Universitas Darma Persada.', 'Hotel Grand Sahid Jaya, Jakarta', '2026-08-10', '2026-08-10', '18:00:00', '23:00:00', 'draft', 200000000.00, 'Gala Dinner', 500, 2, '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
+(3, 'Gala Dinner Alumni Akbar', 'Malam gala dinner tahunan para alumni Universitas Darma Persada.', 'Hotel Grand Sahid Jaya, Jakarta', '2026-08-10', '2026-08-10', '18:00:00', '23:00:00', 'draft', 200000000.00, 'Gala Dinner', 500, 2, '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (4, 'Seminar Kewirausahaan Muda', 'Seminar inspiratif untuk para pengusaha muda Indonesia bersama mentor-mentor berpengalaman.', 'Auditorium Universitas Indonesia, Depok', '2026-05-05', '2026-05-05', '08:00:00', '17:00:00', 'completed', 50000000.00, 'Seminar', 800, 2, '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (5, 'Konser Amal Peduli Anak', 'Konser musik amal untuk penggalangan dana bagi anak-anak kurang mampu di Indonesia.', 'Istora Senayan, Jakarta', '2026-05-11', '2026-05-15', '16:00:00', '22:00:00', 'active', 300000000.00, 'Concert', 10000, 2, '2026-04-24 22:34:50', '2026-05-09 02:54:40');
 
@@ -115,12 +115,12 @@ INSERT INTO `event_personnel` (`id`, `event_id`, `user_id`, `role_in_event`, `no
 (12, 2, 7, 'Creative Director', 'Ditugaskan ke Tech Summit Indonesia 2026', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (13, 2, 8, 'Talent Handler', 'Ditugaskan ke Tech Summit Indonesia 2026', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (14, 2, 2, 'Project Manager', 'Penanggung jawab utama project', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
-(15, 3, 3, 'Event Coordinator', 'Ditugaskan ke Gala Dinner Alumni UNDIRA', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
-(16, 3, 4, 'Promotion Lead', 'Ditugaskan ke Gala Dinner Alumni UNDIRA', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
-(17, 3, 5, 'Budget Manager', 'Ditugaskan ke Gala Dinner Alumni UNDIRA', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
-(18, 3, 6, 'Operations Head', 'Ditugaskan ke Gala Dinner Alumni UNDIRA', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
-(19, 3, 7, 'Creative Director', 'Ditugaskan ke Gala Dinner Alumni UNDIRA', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
-(20, 3, 8, 'Talent Handler', 'Ditugaskan ke Gala Dinner Alumni UNDIRA', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
+(15, 3, 3, 'Event Coordinator', 'Ditugaskan ke Gala Dinner Alumni Akbar', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
+(16, 3, 4, 'Promotion Lead', 'Ditugaskan ke Gala Dinner Alumni Akbar', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
+(17, 3, 5, 'Budget Manager', 'Ditugaskan ke Gala Dinner Alumni Akbar', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
+(18, 3, 6, 'Operations Head', 'Ditugaskan ke Gala Dinner Alumni Akbar', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
+(19, 3, 7, 'Creative Director', 'Ditugaskan ke Gala Dinner Alumni Akbar', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
+(20, 3, 8, 'Talent Handler', 'Ditugaskan ke Gala Dinner Alumni Akbar', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (21, 3, 2, 'Project Manager', 'Penanggung jawab utama project', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (22, 4, 3, 'Event Coordinator', 'Ditugaskan ke Seminar Kewirausahaan Muda', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),
 (23, 4, 4, 'Promotion Lead', 'Ditugaskan ke Seminar Kewirausahaan Muda', '2026-04-24 22:34:50', '2026-04-24 22:34:50'),

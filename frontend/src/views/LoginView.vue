@@ -66,7 +66,7 @@
       </form>
 
       <div class="login-footer">
-        <p>© 2026 Event Connect · UNDIRA</p>
+        <p>© 2026 EventConnect</p>
       </div>
     </div>
   </div>
