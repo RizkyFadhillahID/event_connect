@@ -138,7 +138,6 @@ async function handleLogin() {
 .login-logo {
   height: 120px;
   object-fit: contain;
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
   margin-bottom: 12px;
 }
 

@@ -223,7 +223,7 @@ async function confirmLogout() {
   min-height: 40px;
 }
 .brand { display: flex; align-items: center; gap: 6px; }
-.brand-logo { height: 44px; object-fit: contain; filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.7)); }
+.brand-logo { height: 44px; object-fit: contain; }
 .collapse-btn {
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--glass-border);

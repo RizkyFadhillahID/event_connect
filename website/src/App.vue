@@ -865,7 +865,6 @@ onMounted(() => {
 .brand-logo {
   height: 52px;
   object-fit: contain;
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.7));
 }
 .nav-links {
   display: flex;
