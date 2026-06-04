@@ -259,18 +259,13 @@ onMounted(() => {
     <!-- Navbar -->
     <header class="navbar glass-card" :class="{ 'mobile-open': mobileNavOpen }">
       <div class="nav-brand">
-        <div class="brand-icon">
-          <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="10" fill="url(#gBrand)"/>
-            <path d="M12 20h16M20 12l8 8-8 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <defs><linearGradient id="gBrand" x1="0" y1="0" x2="40" y2="40"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#0d9488"/></linearGradient></defs>
-          </svg>
-        </div>
-        <span class="brand-name">EventConnect</span>
+        <img src="/logo.png" alt="EventConnect Logo" class="brand-logo" />
       </div>
       <nav class="nav-links">
         <a href="#features" @click.prevent="handleMobileNavClick('#features')">Fitur</a>
+        <a href="#sandbox" @click.prevent="handleMobileNavClick('#sandbox')">Interactive Sandbox</a>
         <a href="#pricing" @click.prevent="handleMobileNavClick('#pricing')">Paket Harga</a>
+        <a href="#faq" @click.prevent="handleMobileNavClick('#faq')">FAQ</a>
         <a href="#contact" @click.prevent="handleMobileNavClick('#contact')">Hubungi Kami</a>
         <a :href="LOGIN_APP_URL" class="mobile-login-link">Login App</a>
         <button class="btn btn-primary mobile-signup-btn" @click="openRegisterMobile">Daftarkan EO</button>
@@ -335,7 +330,7 @@ onMounted(() => {
     </section>
 
     <!-- Interactive Showcase Section -->
-    <section class="section-showcase">
+    <section id="sandbox" class="section-showcase">
       <div class="section-header">
         <h2>Interactive Sandbox</h2>
         <p>Rasakan kemudahan mengelola operasional event secara langsung. Klik tab di bawah untuk mencoba simulasi alur kerja platform kami.</p>
@@ -867,14 +862,10 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
 }
-.brand-name {
-  font-family: 'Outfit', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.brand-logo {
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.7));
 }
 .nav-links {
   display: flex;

@@ -33,11 +33,15 @@
                     <span class="sender-email">{{ msg.email }}</span>
                   </div>
                 </td>
-                <td class="subject-cell" :title="msg.subject">
-                  {{ msg.subject }}
+                <td>
+                  <div class="subject-cell" :title="msg.subject">
+                    {{ msg.subject }}
+                  </div>
                 </td>
-                <td class="message-cell" :title="msg.message">
-                  {{ msg.message }}
+                <td>
+                  <div class="message-cell" :title="msg.message">
+                    {{ msg.message }}
+                  </div>
                 </td>
                 <td style="font-size: 13px; color: var(--text-secondary);">
                   {{ formatDate(msg.created_at) }}

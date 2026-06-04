@@ -14,12 +14,12 @@
 /backend/public/storage
 /backend/node_modules/
 
-# ─── Frontend (Vue / Vite) ────────────────────────────────────
-/frontend/node_modules/
-/frontend/dist/
-/frontend/.env
-/frontend/.env.local
-/frontend/.env.*.local
+# ─── Tenant (Vue / Vite) ──────────────────────────────────────
+/tenant/node_modules/
+/tenant/dist/
+/tenant/.env
+/tenant/.env.local
+/tenant/.env.*.local
 
 # ─── OS & Editor ──────────────────────────────────────────────
 .DS_Store

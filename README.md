@@ -20,7 +20,7 @@ Sistem terdiri dari **4 komponen** utama yang berjalan secara independen:
 ┌─────────────────────────────────────────────────────────────────┐
 │                      EventConnect Platform                      │
 ├─────────────┬──────────────┬───────────────┬────────────────────┤
-│   Backend   │   Frontend   │   Backoffice  │     Website        │
+│   Backend   │    Tenant    │   Backoffice  │     Website        │
 │  (Laravel)  │   (Vue 3)    │    (Vue 3)    │     (Vue 3)        │
 │  Port 8000  │  Port 5173   │  Port 5174    │   Port 5175        │
 │  REST API   │  Tenant App  │  Admin Portal │  Landing Page      │
@@ -30,7 +30,7 @@ Sistem terdiri dari **4 komponen** utama yang berjalan secara independen:
 | Komponen | Deskripsi | Teknologi |
 |----------|-----------|-----------|
 | **`backend/`** | REST API server, autentikasi, database, real-time broadcasting | Laravel 13, Sanctum, Reverb |
-| **`frontend/`** | Aplikasi operasional EO (tenant) — kelola event, task, rundown, chat, dll. | Vue 3, Vite 8, Pinia, Laravel Echo |
+| **`tenant/`** | Aplikasi operasional EO (tenant) — kelola event, task, rundown, chat, dll. | Vue 3, Vite 8, Pinia, Laravel Echo |
 | **`backoffice/`** | Portal admin platform — kelola tenant EO, CMS landing page, inbox | Vue 3, Vite 8, Pinia |
 | **`website/`** | Landing page publik — showcase produk, pricing, kontak, pendaftaran EO | Vue 3, Vite 8 |
 
@@ -156,21 +156,21 @@ php artisan reverb:start
 
 ---
 
-### 3. Setup Frontend — Aplikasi Tenant EO
+### 3. Setup Tenant — Aplikasi Tenant EO
 
 Buka terminal baru:
 
 ```bash
-cd frontend
+cd tenant
 npm install
 npm run dev
 ```
 
-Frontend akan berjalan di: **http://localhost:5173**
+Tenant App akan berjalan di: **http://localhost:5173**
 
 #### Konfigurasi API URL (Opsional)
 
-Jika backend berjalan di URL berbeda, buat file `.env` di folder `frontend/`:
+Jika backend berjalan di URL berbeda, buat file `.env` di folder `tenant/`:
 
 ```env
 VITE_API_URL=http://localhost:8000/api
@@ -224,7 +224,7 @@ Website akan berjalan di: **http://localhost:5175**
 | Password | `password123` |
 | Role | Platform Owner |
 
-### Aplikasi Tenant (Frontend EO)
+### Aplikasi Tenant (Tenant EO)
 | Field | Value |
 |-------|-------|
 | URL | http://localhost:5173 |
@@ -241,7 +241,7 @@ Website akan berjalan di: **http://localhost:5175**
 |----------|-----|------------|
 | Backend API | http://localhost:8000/api | REST API Server |
 | WebSocket (Reverb) | http://localhost:8080 | Real-Time Broadcasting |
-| Frontend (Tenant) | http://localhost:5173 | Aplikasi Event Organizer |
+| Tenant App | http://localhost:5173 | Aplikasi Event Organizer |
 | Backoffice (Admin) | http://localhost:5174 | Portal Admin Platform |
 | Website (Landing) | http://localhost:5175 | Landing Page Publik |
 
@@ -273,7 +273,7 @@ event_connect/
 │   ├── .env.example            # Template konfigurasi environment
 │   └── composer.json
 │
-├── frontend/                   # Vue 3 — Aplikasi Tenant EO
+├── tenant/                     # Vue 3 — Aplikasi Tenant EO
 │   ├── src/
 │   │   ├── api/                # Axios HTTP client config
 │   │   ├── components/         # Komponen reusable (ChatBox, dll.)
@@ -382,8 +382,8 @@ Duration: ...
 ## 🔨 Build untuk Produksi
 
 ```bash
-# Frontend
-cd frontend && npm run build
+# Tenant App
+cd tenant && npm run build
 
 # Backoffice
 cd backoffice && npm run build
@@ -408,7 +408,7 @@ Untuk dokumentasi teknis yang lebih detail, silakan baca:
 | Layer | Teknologi |
 |-------|-----------|
 | **Backend Framework** | Laravel 13 (PHP 8.3+) |
-| **Frontend Framework** | Vue 3 (Composition API) |
+| **Tenant Framework** | Vue 3 (Composition API) |
 | **Build Tool** | Vite 8 |
 | **State Management** | Pinia 3 |
 | **HTTP Client** | Axios |

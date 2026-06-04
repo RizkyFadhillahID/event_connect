@@ -35,7 +35,7 @@
     </transition>
 
     <!-- Table Card -->
-    <div class="table-card glass-card" v-if="!loading">
+    <div class="glass-card table-container" v-if="!loading">
       <div class="table-wrap">
         <table class="glass-table">
           <thead>
@@ -581,8 +581,8 @@ onMounted(() => {
   padding-bottom: 10px;
 }
 
-.table-card {
-  padding: 24px;
+.table-container {
+  padding: 0 0 20px;
 }
 .actions-cell {
   display: flex;

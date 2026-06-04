@@ -122,7 +122,7 @@
           
           <!-- Modal Tabs -->
           <div class="modal-tabs">
-            <button class="btn btn-glass btn-sm" @click="detailEvent = null" title="Kembali" style="display:flex; align-items:center; gap:6px; padding: 6px 12px">
+            <button class="btn btn-glass btn-sm" @click="detailEvent = null; isEditingEvent = false" title="Kembali" style="display:flex; align-items:center; gap:6px; padding: 6px 12px">
             <ArrowLeft :size="16" />
           </button>
             <button type="button" class="tab-btn" :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">
@@ -143,86 +143,201 @@
           </div>
 
           <!-- Tab 1: General Info & Personnel & Tasks -->
-          <div v-if="activeTab === 'info'" class="detail-grid">
-            <div class="detail-section">
-              <h3 class="detail-title">{{ detailEvent.name }}</h3>
-              <p class="detail-desc">{{ detailEvent.description || 'Tidak ada deskripsi.' }}</p>
-              <div class="detail-meta-list">
-                <div class="dm-item">
-                  <MapPin :size="16" />
-                  <span>{{ detailEvent.location }}</span>
+          <div v-if="activeTab === 'info'">
+            <div v-if="!isEditingEvent" class="detail-grid">
+              <div class="detail-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+                  <h3 class="detail-title" style="margin-bottom:0">{{ detailEvent.name }}</h3>
+                  <button v-if="auth.canManageEvents" class="btn btn-glass btn-sm" @click="startInlineEdit" style="display:flex; align-items:center; gap:6px">
+                    <Edit :size="14" />
+                    Edit Event
+                  </button>
                 </div>
-                <div class="dm-item">
-                  <Calendar :size="16" />
-                  <span>{{ formatDate(detailEvent.start_date) }} — {{ formatDate(detailEvent.end_date) }}</span>
-                </div>
-                <div class="dm-item" v-if="detailEvent.start_time">
-                  <Clock :size="16" />
-                  <span>{{ detailEvent.start_time }} — {{ detailEvent.end_time }}</span>
-                </div>
-                <div class="dm-item" v-if="detailEvent.budget">
-                  <DollarSign :size="16" />
-                  <span>{{ formatCurrency(detailEvent.budget) }}</span>
-                </div>
-                <div class="dm-item" v-if="detailEvent.expected_participants">
-                  <Users :size="16" />
-                  <span>{{ detailEvent.expected_participants.toLocaleString('id-ID') }} peserta</span>
-                </div>
-                <div class="dm-item">
-                  <User :size="16" />
-                  <span>Dibuat oleh: {{ detailEvent.creator?.name }}</span>
+                <p class="detail-desc">{{ detailEvent.description || 'Tidak ada deskripsi.' }}</p>
+                <div class="detail-meta-list">
+                  <div class="dm-item">
+                    <MapPin :size="16" />
+                    <span>{{ detailEvent.location }}</span>
+                  </div>
+                  <div class="dm-item">
+                    <Calendar :size="16" />
+                    <span>{{ formatDate(detailEvent.start_date) }} — {{ formatDate(detailEvent.end_date) }}</span>
+                  </div>
+                  <div class="dm-item" v-if="detailEvent.start_time">
+                    <Clock :size="16" />
+                    <span>{{ detailEvent.start_time }} — {{ detailEvent.end_time }}</span>
+                  </div>
+                  <div class="dm-item" v-if="detailEvent.budget">
+                    <DollarSign :size="16" />
+                    <span>{{ formatCurrency(detailEvent.budget) }}</span>
+                  </div>
+                  <div class="dm-item" v-if="detailEvent.expected_participants">
+                    <Users :size="16" />
+                    <span>{{ detailEvent.expected_participants.toLocaleString('id-ID') }} peserta</span>
+                  </div>
+                  <div class="dm-item">
+                    <User :size="16" />
+                    <span>Dibuat oleh: {{ detailEvent.creator?.name }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="detail-section">
-              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text-secondary)">TIM PERSONEL ({{ detailEvent.personnel?.length || 0 }})</h4>
-              <div class="personnel-list">
-                <div v-if="!detailEvent.personnel?.length" style="color:var(--text-muted);font-size:13px">Belum ada personel</div>
-                <div v-for="p in detailEvent.personnel" :key="p.id" class="personnel-item">
-                  <div class="p-avatar-lg">{{ p.name.charAt(0) }}</div>
-                  <div>
-                    <div style="font-size:13px;font-weight:500">{{ p.name }}</div>
-                    <div style="font-size:11px;color:var(--text-muted)">{{ p.pivot?.role_in_event || roleLabel(p.role) }}</div>
+              <div class="detail-section">
+                <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text-secondary)">TIM PERSONEL ({{ detailEvent.personnel?.length || 0 }})</h4>
+                <div class="personnel-list">
+                  <div v-if="!detailEvent.personnel?.length" style="color:var(--text-muted);font-size:13px">Belum ada personel</div>
+                  <div v-for="p in detailEvent.personnel" :key="p.id" class="personnel-item">
+                    <div class="p-avatar-lg">{{ p.name.charAt(0) }}</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:500">{{ p.name }}</div>
+                      <div style="font-size:11px;color:var(--text-muted)">{{ p.pivot?.role_in_event || roleLabel(p.role) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tasks section -->
+              <div class="detail-section">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <h4 style="font-size:14px;font-weight:600;color:var(--text-secondary)">TASK & WORKFLOW</h4>
+                  <RouterLink :to="{ path: '/tasks', query: { event_id: detailEvent.id } }" class="btn btn-glass btn-sm" style="font-size:11px">
+                    <CheckSquare :size="14" />
+                    Semua Task
+                  </RouterLink>
+                </div>
+                <div v-if="loadingEventTasks" style="padding:16px;text-align:center">
+                  <Loader2 :size="20" class="spinner-icon" />
+                </div>
+                <div v-else>
+                  <div v-if="eventTaskStats" class="task-stats-bar">
+                    <div class="tstat" style="color:#67e8f9"><span class="tstat-val">{{ eventTaskStats.total }}</span><span>Total</span></div>
+                    <div class="tstat" style="color:#fcd34d"><span class="tstat-val">{{ eventTaskStats.in_progress }}</span><span>Berjalan</span></div>
+                    <div class="tstat" style="color:#38bdf8"><span class="tstat-val">{{ eventTaskStats.review }}</span><span>Review</span></div>
+                    <div class="tstat" style="color:#6ee7b7"><span class="tstat-val">{{ eventTaskStats.completed }}</span><span>Selesai</span></div>
+                    <div class="tstat" style="color:#fca5a5"><span class="tstat-val">{{ eventTaskStats.overdue }}</span><span>Overdue</span></div>
+                  </div>
+                  <div v-if="eventTaskStats?.total" class="task-progress-wrap">
+                    <div class="task-progress-bar">
+                      <div class="task-progress-fill" :style="`width:${eventTaskStats.progress}%`"></div>
+                    </div>
+                    <span style="font-size:11px;color:var(--text-muted)">{{ eventTaskStats.progress }}% selesai</span>
+                  </div>
+                  <div v-if="!eventTasks.length" style="color:var(--text-muted);font-size:13px;padding:8px 0">
+                    Belum ada task
+                  </div>
+                  <div v-for="t in eventTasks.slice(0, 5)" :key="t.id" class="event-task-item">
+                    <span class="priority-dot-sm" :class="`pdot-${t.priority}`"></span>
+                    <span class="event-task-title">{{ t.title }}</span>
+                    <span class="badge event-task-status" :class="`task-badge-${t.status}`">{{ statusLabel2(t.status) }}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Tasks section -->
-            <div class="detail-section">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                <h4 style="font-size:14px;font-weight:600;color:var(--text-secondary)">TASK & WORKFLOW</h4>
-                <RouterLink :to="{ path: '/tasks', query: { event_id: detailEvent.id } }" class="btn btn-glass btn-sm" style="font-size:11px">
-                  <CheckSquare :size="14" />
-                  Semua Task
-                </RouterLink>
-              </div>
-              <div v-if="loadingEventTasks" style="padding:16px;text-align:center">
-                <Loader2 :size="20" class="spinner-icon" />
-              </div>
-              <div v-else>
-                <div v-if="eventTaskStats" class="task-stats-bar">
-                  <div class="tstat" style="color:#67e8f9"><span class="tstat-val">{{ eventTaskStats.total }}</span><span>Total</span></div>
-                  <div class="tstat" style="color:#fcd34d"><span class="tstat-val">{{ eventTaskStats.in_progress }}</span><span>Berjalan</span></div>
-                  <div class="tstat" style="color:#38bdf8"><span class="tstat-val">{{ eventTaskStats.review }}</span><span>Review</span></div>
-                  <div class="tstat" style="color:#6ee7b7"><span class="tstat-val">{{ eventTaskStats.completed }}</span><span>Selesai</span></div>
-                  <div class="tstat" style="color:#fca5a5"><span class="tstat-val">{{ eventTaskStats.overdue }}</span><span>Overdue</span></div>
+            <!-- Inline Edit Form (View) -->
+            <div v-else class="glass-card" style="padding: 24px; border: 1px solid var(--glass-border); border-radius: 16px;">
+              <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--primary-light)">Ubah Detail Event</h3>
+              
+              <transition name="fade">
+                <div v-if="formError" class="alert alert-error" style="margin-bottom:20px">{{ formError }}</div>
+              </transition>
+
+              <form @submit.prevent="submitForm">
+                <!-- Basic info -->
+                <div class="form-group">
+                  <label>Nama Event *</label>
+                  <input v-model="form.name" class="glass-input" required placeholder="Masukkan nama event"/>
                 </div>
-                <div v-if="eventTaskStats?.total" class="task-progress-wrap">
-                  <div class="task-progress-bar">
-                    <div class="task-progress-fill" :style="`width:${eventTaskStats.progress}%`"></div>
+                <div class="form-group">
+                  <label>Deskripsi</label>
+                  <textarea v-model="form.description" class="glass-input" rows="3" placeholder="Tulis deskripsi singkat event di sini..."></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Lokasi *</label>
+                    <input v-model="form.location" class="glass-input" required placeholder="Masukkan lokasi event"/>
                   </div>
-                  <span style="font-size:11px;color:var(--text-muted)">{{ eventTaskStats.progress }}% selesai</span>
+                  <div class="form-group">
+                    <label>Kategori</label>
+                    <input v-model="form.category" class="glass-input" placeholder="Masukkan kategori event (misal: Seminar)"/>
+                  </div>
                 </div>
-                <div v-if="!eventTasks.length" style="color:var(--text-muted);font-size:13px;padding:8px 0">
-                  Belum ada task
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Tanggal Mulai *</label>
+                    <input v-model="form.start_date" type="date" class="glass-input" required/>
+                  </div>
+                  <div class="form-group">
+                    <label>Tanggal Selesai *</label>
+                    <input v-model="form.end_date" type="date" class="glass-input" required/>
+                  </div>
                 </div>
-                <div v-for="t in eventTasks.slice(0, 5)" :key="t.id" class="event-task-item">
-                  <span class="priority-dot-sm" :class="`pdot-${t.priority}`"></span>
-                  <span class="event-task-title">{{ t.title }}</span>
-                  <span class="badge event-task-status" :class="`task-badge-${t.status}`">{{ statusLabel2(t.status) }}</span>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Jam Mulai</label>
+                    <input v-model="form.start_time" type="time" class="glass-input"/>
+                  </div>
+                  <div class="form-group">
+                    <label>Jam Selesai</label>
+                    <input v-model="form.end_time" type="time" class="glass-input"/>
+                  </div>
                 </div>
-              </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Status *</label>
+                    <select v-model="form.status" class="glass-input" required>
+                      <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Estimasi Peserta</label>
+                    <input v-model.number="form.expected_participants" type="number" class="glass-input" min="0" placeholder="500"/>
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                  <label>Budget (Rp)</label>
+                  <input v-model.number="form.budget" type="number" class="glass-input" min="0" placeholder="500000000"/>
+                </div>
+
+                <!-- Personnel -->
+                <div class="personnel-section" style="margin-top:20px; padding:16px; background:rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius:12px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                    <label style="margin-bottom:0; font-weight:600">Tim Personel</label>
+                    <button type="button" class="btn btn-glass btn-sm" @click="addPersonnel">
+                      <Plus :size="16" />
+                      Tambah Anggota
+                    </button>
+                  </div>
+                  <div v-if="form.personnel.length === 0" style="color:var(--text-muted);font-size:13px;padding:12px 0;text-align:center">Belum ada personel ditambahkan</div>
+                  <div v-for="(p, idx) in form.personnel" :key="idx" class="personnel-row" style="display:flex; gap:10px; margin-bottom:10px">
+                    <select v-model="p.user_id" class="glass-input" style="flex:1">
+                      <option value="">Pilih User</option>
+                      <option v-for="u in availableUsers" :key="u.id" :value="u.id">{{ u.name }} ({{ roleLabel(u.role) }})</option>
+                    </select>
+                    <select v-model="p.role_in_event" class="glass-input" style="flex:1">
+                      <option value="">Pilih Peran di Event</option>
+                      <option value="Rundown Coordinator">Rundown Coordinator (Koordinator)</option>
+                      <option value="Rundown PIC">Rundown PIC (Panggung/Acara)</option>
+                      <option value="Event Planner">Event Planner</option>
+                      <option value="Event Coordinator">Event Coordinator</option>
+                      <option value="Technical Team">Technical Team</option>
+                      <option value="Talent Team">Talent Team</option>
+                      <option value="Logistics Team">Logistics Team</option>
+                      <option value="Staff">Staff (Staf Umum)</option>
+                    </select>
+                    <button type="button" class="btn btn-danger btn-sm" @click="removePersonnel(idx)" title="Hapus" style="padding:0 12px">
+                      <X :size="16" />
+                    </button>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:24px">
+                  <button type="button" class="btn btn-glass" @click="isEditingEvent = false">Batal</button>
+                  <button type="submit" class="btn btn-primary" :disabled="submitting">
+                    <Loader2 v-if="submitting" :size="16" class="spinner-icon" />
+                    <span v-else>Simpan Perubahan</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
 
@@ -1296,12 +1411,12 @@
       </div>
     </Transition>
 
-    <!-- Create/Edit Modal -->
+    <!-- Create Modal (Only for Creating New Event) -->
     <Transition name="fade">
       <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal-box" style="max-width:700px">
           <div class="modal-header">
-            <h2>{{ editId ? 'Edit Event' : 'Buat Event Baru' }}</h2>
+            <h2>Buat Event Baru</h2>
             <button class="btn btn-glass btn-sm" @click="closeModal" title="Tutup">
               <X :size="18" />
             </button>
@@ -1404,7 +1519,7 @@
               <button type="button" class="btn btn-glass" @click="closeModal">Batal</button>
               <button type="submit" class="btn btn-primary" :disabled="submitting">
                 <Loader2 v-if="submitting" :size="16" class="spinner-icon" />
-                <span v-else>{{ editId ? 'Simpan Perubahan' : 'Buat Event' }}</span>
+                <span>Buat Event</span>
               </button>
             </div>
           </form>
@@ -1461,6 +1576,7 @@ const eventTaskCounts = ref({})
 const eventTasks = ref([])
 const eventTaskStats = ref(null)
 const loadingEventTasks = ref(false)
+const isEditingEvent = ref(false)
 
 // Guest RSVP and Scan Simulation ref states
 const guestsData = ref([])
@@ -1551,6 +1667,7 @@ async function openDetail(ev) {
   eventTasks.value = []
   eventTaskStats.value = null
   loadingEventTasks.value = true
+  isEditingEvent.value = false
   try {
     const res = await api.get(`/events/${ev.id}/tasks`)
     eventTasks.value = res.data.tasks || []
@@ -1578,8 +1695,26 @@ function openEdit(ev) {
     personnel: ev.personnel?.map(p => ({ user_id: p.id, role_in_event: p.pivot?.role_in_event || '' })) || [],
   }
   formError.value = ''
-  showModal.value = true
+  openDetail(ev)
+  isEditingEvent.value = true
 }
+
+function startInlineEdit() {
+  if (!detailEvent.value) return
+  const ev = detailEvent.value
+  editId.value = ev.id
+  form.value = {
+    name: ev.name, description: ev.description || '', location: ev.location,
+    start_date: ev.start_date?.substring(0, 10) || '', end_date: ev.end_date?.substring(0, 10) || '',
+    start_time: normalizeTimeInput(ev.start_time), end_time: normalizeTimeInput(ev.end_time),
+    status: ev.status, budget: ev.budget || '', category: ev.category || '',
+    expected_participants: ev.expected_participants || '',
+    personnel: ev.personnel?.map(p => ({ user_id: p.id, role_in_event: p.pivot?.role_in_event || '' })) || [],
+  }
+  formError.value = ''
+  isEditingEvent.value = true
+}
+
 function closeModal() { showModal.value = false }
 
 function addPersonnel() { form.value.personnel.push({ user_id: '', role_in_event: '' }) }
@@ -1606,11 +1741,15 @@ async function submitForm() {
   payload.personnel = payload.personnel.filter(p => p.user_id)
   try {
     if (editId.value) {
-      await api.put(`/events/${editId.value}`, payload)
+      const res = await api.put(`/events/${editId.value}`, payload)
+      if (detailEvent.value && detailEvent.value.id === editId.value) {
+        detailEvent.value = res.data
+      }
+      isEditingEvent.value = false
     } else {
       await api.post('/events', payload)
+      closeModal()
     }
-    closeModal()
     fetchEvents(pagination.value.current_page)
   } catch (e) {
     const errs = e.response?.data?.errors
@@ -1646,6 +1785,7 @@ onMounted(() => {
 watch(() => router.currentRoute.value.path, () => {
   detailEvent.value = null
   showModal.value = false
+  isEditingEvent.value = false
   deleteTarget.value = null
   cancelAllocationForm()
   cancelExpenseForm()

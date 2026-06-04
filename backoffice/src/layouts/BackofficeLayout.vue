@@ -4,16 +4,9 @@
     <aside class="sidebar glass-card" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
         <div class="brand" v-if="!sidebarCollapsed">
-          <div class="brand-icon">
-            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="10" fill="url(#gAdmin)"/>
-              <path d="M12 20h16M20 12l8 8-8 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <defs><linearGradient id="gAdmin" x1="0" y1="0" x2="40" y2="40"><stop offset="0%" stop-color="#e5e5e5"/><stop offset="100%" stop-color="#737373"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div class="brand-details" style="display: flex; flex-direction: column;">
-            <span class="brand-name">EventConnect</span>
-            <span class="org-name" style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Backoffice Portal</span>
+          <img src="/logo.png" alt="EventConnect Logo" class="brand-logo" />
+          <div class="brand-details" style="display: flex; flex-direction: column; margin-left: 2px;">
+            <span class="org-name" style="font-size: 10px; color: var(--primary-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1;">Backoffice Portal</span>
           </div>
         </div>
         <button class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed">
@@ -229,8 +222,8 @@ async function confirmLogout() {
   margin-bottom: 28px;
   min-height: 40px;
 }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-name { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #f5f5f5, #a3a3a3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.brand { display: flex; align-items: center; gap: 6px; }
+.brand-logo { height: 44px; object-fit: contain; filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.7)); }
 .collapse-btn {
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--glass-border);
@@ -267,7 +260,7 @@ async function confirmLogout() {
   transition: all 0.2s;
 }
 .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
-.nav-item.active { background: rgba(255,255,255,0.08); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.12); }
+.nav-item.active { background: linear-gradient(135deg, rgba(14,165,233,0.2), rgba(13,148,136,0.2)); color: var(--text-primary); border: 1px solid rgba(14,165,233,0.3); }
 .nav-icon-lucide { flex-shrink: 0; stroke-width: 2.5; }
 .nav-label { white-space: nowrap; overflow: hidden; }
 
@@ -275,7 +268,7 @@ async function confirmLogout() {
 .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .user-avatar {
   width: 36px; height: 36px;
-  background: linear-gradient(135deg, #404040, #262626);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 14px;
@@ -310,7 +303,7 @@ async function confirmLogout() {
 }
 .user-avatar-sm {
   width: 32px; height: 32px;
-  background: linear-gradient(135deg, #404040, #262626);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 13px;

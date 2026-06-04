@@ -6,17 +6,10 @@
     <aside class="sidebar glass-card" :class="{ collapsed: sidebarCollapsed, 'mobile-open': mobileMenuOpen }">
       <div class="sidebar-header">
         <div class="brand" v-if="!sidebarCollapsed">
-          <div class="brand-icon">
-            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="10" fill="url(#g1)"/>
-              <path d="M12 20h16M20 12l8 8-8 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <defs><linearGradient id="g1" x1="0" y1="0" x2="40" y2="40"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#0d9488"/></linearGradient></defs>
-            </svg>
-          </div>
+          <img src="/logo.png" alt="EventConnect Logo" class="brand-logo" />
           <div class="brand-details" style="display: flex; flex-direction: column;">
-            <span class="brand-name" style="line-height: 1.2;">EventConnect</span>
             <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-              <span class="org-name" style="font-size: 11px; color: var(--text-muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px;" :title="auth.organizationName">{{ auth.organizationName }}</span>
+              <span class="org-name" style="font-size: 11px; color: var(--text-muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;" :title="auth.organizationName">{{ auth.organizationName }}</span>
               <span 
                 v-if="auth.organization?.plan" 
                 class="plan-badge" 
@@ -358,8 +351,8 @@ async function confirmLogout() {
   margin-bottom: 28px;
   min-height: 40px;
 }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-name { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #0ea5e9, #0d9488); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.brand { display: flex; align-items: center; gap: 6px; }
+.brand-logo { height: 44px; object-fit: contain; filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.7)); }
 .collapse-btn {
   background: rgba(255,255,255,0.1);
   border: 1px solid var(--glass-border);

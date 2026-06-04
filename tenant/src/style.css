@@ -123,6 +123,22 @@ select.glass-input {
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .modal-header h2 { margin-bottom: 0; }
 
+/* Hide scrollbars in all modals and their children */
+.modal-box,
+.modal-box *,
+.modal,
+.modal * {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.modal-box::-webkit-scrollbar,
+.modal-box *::-webkit-scrollbar,
+.modal::-webkit-scrollbar,
+.modal *::-webkit-scrollbar {
+  display: none;
+}
+
+
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

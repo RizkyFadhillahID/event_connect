@@ -7,14 +7,6 @@
     </div>
 
     <div v-else>
-      <!-- Welcome card -->
-      <div class="welcome-card glass-card">
-        <div class="wc-content">
-          <h1>Selamat Datang, {{ auth.admin?.name }}!</h1>
-          <p>Anda login sebagai <strong>{{ formatRole(auth.admin?.role) }}</strong>. Berikut ringkasan performa dan aktivitas platform EventConnect.</p>
-        </div>
-      </div>
-
       <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card glass-card">
@@ -207,15 +199,15 @@ onMounted(() => {
 
 .welcome-card {
   padding: 32px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
-  border-color: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(13, 148, 136, 0.15));
+  border-color: rgba(14, 165, 233, 0.25);
   margin-bottom: 28px;
 }
 .welcome-card h1 {
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 8px;
-  background: linear-gradient(135deg, #f5f5f5, #737373);
+  background: linear-gradient(135deg, #f8fafc, #38bdf8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -259,11 +251,11 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
-.c-blue { color: #d4d4d4; }
+.c-blue { color: #0ea5e9; }
 .c-teal { color: #10b981; }
 .c-amber { color: #f59e0b; }
-.c-purple { color: #a78bfa; }
-.c-cyan { color: #a3a3a3; }
+.c-purple { color: #a855f7; }
+.c-cyan { color: #06b6d4; }
 
 /* Details */
 .detail-section {
@@ -283,7 +275,7 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 20px;
-  border-left: 3px solid rgba(255,255,255,0.2);
+  border-left: 3px solid var(--primary);
   padding-left: 10px;
 }
 </style>

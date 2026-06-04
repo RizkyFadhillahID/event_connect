@@ -7,20 +7,7 @@
 
     <div class="login-container glass-card">
       <div class="login-header">
-        <div class="logo-icon">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="12" fill="url(#grad)"/>
-            <path d="M12 20h16M20 12l8 8-8 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <defs>
-              <linearGradient id="grad" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stop-color="#0ea5e9"/>
-                <stop offset="100%" stop-color="#0d9488"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <h1>Event Connect</h1>
-        <p>Platform Manajemen Event Terpadu</p>
+        <img src="/logo.png" alt="EventConnect Logo" class="login-logo" />
       </div>
 
       <form @submit.prevent="handleLogin">
@@ -146,22 +133,11 @@ async function handleLogin() {
   text-align: center;
   margin-bottom: 36px;
 }
-.logo-icon {
-  display: inline-flex;
-  margin-bottom: 16px;
-}
-.login-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #0ea5e9, #0d9488, #06b6d4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 8px;
-}
-.login-header p {
-  color: var(--text-secondary);
-  font-size: 14px;
+.login-logo {
+  height: 120px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
+  margin-bottom: 12px;
 }
 
 .input-wrapper { position: relative; }

@@ -167,7 +167,7 @@
 
     <!-- ═══════════════════ CREATE / EDIT MODAL ═══════════════════ -->
     <div v-if="showFormModal" class="modal-overlay" @click.self="closeForm">
-      <div class="modal glass-card modal-lg">
+      <div class="modal modal-lg">
         <div class="modal-header">
           <h3><CalendarClock :size="20" /> {{ editId ? 'Edit Sesi Rundown' : 'Tambah Sesi Rundown' }}</h3>
           <button class="btn-icon" @click="closeForm"><X :size="18" /></button>
@@ -287,7 +287,7 @@
 
     <!-- ═══════════════════ DETAIL MODAL ═══════════════════ -->
     <div v-if="showDetailModal && detailItem" class="modal-overlay" @click.self="closeDetail">
-      <div class="modal glass-card modal-xl">
+      <div class="modal modal-xl">
         <div class="modal-header">
           <div>
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
@@ -956,14 +956,17 @@ onMounted(async () => {
 .btn-icon.btn-danger:hover { background: rgba(239,68,68,0.2); }
 
 /* ── Form modal ── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-.modal        { width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal        { width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px rgba(0,0,0,0.5); -ms-overflow-style: none; scrollbar-width: none; }
+.modal::-webkit-scrollbar { display: none; }
 .modal-lg     { max-width: 760px; }
 .modal-xl     { max-width: 1000px; }
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 24px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .modal-header h3 { margin: 0; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 8px; }
-.modal-body   { overflow-y: auto; padding: 20px 24px; flex: 1; }
+.modal-body   { overflow-y: auto; padding: 20px 24px; flex: 1; -ms-overflow-style: none; scrollbar-width: none; }
+.modal-body::-webkit-scrollbar { display: none; }
 .modal-footer { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end; gap: 10px; }
+
 
 /* ── Form grid ── */
 .form-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
