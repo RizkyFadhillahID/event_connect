@@ -13,14 +13,14 @@
             <path d="M12 20h16M20 12l8 8-8 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             <defs>
               <linearGradient id="gradAdmin" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stop-color="#0ea5e9"/>
-                <stop offset="100%" stop-color="#0d9488"/>
+                <stop offset="0%" stop-color="#e5e5e5"/>
+                <stop offset="100%" stop-color="#737373"/>
               </linearGradient>
             </defs>
           </svg>
         </div>
         <h1>EventConnect</h1>
-        <p style="color: var(--primary-light); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; margin-top: 4px;">Platform Admin Portal</p>
+        <p style="color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em; margin-top: 4px;">Platform Admin Portal</p>
       </div>
 
       <form @submit.prevent="handleLogin">
@@ -120,9 +120,9 @@ async function handleLogin() {
   animation: float 8s ease-in-out infinite;
   pointer-events: none;
 }
-.blob-1 { width: 400px; height: 400px; background: #0ea5e9; top: -100px; left: -100px; animation-delay: 0s; }
-.blob-2 { width: 300px; height: 300px; background: #0d9488; bottom: -50px; right: -50px; animation-delay: 2s; }
-.blob-3 { width: 250px; height: 250px; background: #06b6d4; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: 4s; }
+.blob-1 { width: 400px; height: 400px; background: #262626; top: -100px; left: -100px; animation-delay: 0s; }
+.blob-2 { width: 300px; height: 300px; background: #1a1a1a; bottom: -50px; right: -50px; animation-delay: 2s; }
+.blob-3 { width: 250px; height: 250px; background: #333333; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: 4s; }
 
 @keyframes float {
   0%, 100% { transform: translateY(0) scale(1); }
@@ -154,7 +154,7 @@ async function handleLogin() {
 .login-header h1 {
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #0ea5e9, #0d9488, #06b6d4);
+  background: linear-gradient(135deg, #ffffff, #a3a3a3);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

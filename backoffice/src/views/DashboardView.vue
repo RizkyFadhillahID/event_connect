@@ -207,15 +207,15 @@ onMounted(() => {
 
 .welcome-card {
   padding: 32px;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(13, 148, 136, 0.15));
-  border-color: rgba(14, 165, 233, 0.25);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  border-color: rgba(255, 255, 255, 0.08);
   margin-bottom: 28px;
 }
 .welcome-card h1 {
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 8px;
-  background: linear-gradient(135deg, #f8fafc, #38bdf8);
+  background: linear-gradient(135deg, #f5f5f5, #737373);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -259,11 +259,11 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
-.c-blue { color: #0ea5e9; }
+.c-blue { color: #d4d4d4; }
 .c-teal { color: #10b981; }
 .c-amber { color: #f59e0b; }
-.c-purple { color: #a855f7; }
-.c-cyan { color: #06b6d4; }
+.c-purple { color: #a78bfa; }
+.c-cyan { color: #a3a3a3; }
 
 /* Details */
 .detail-section {
@@ -283,7 +283,7 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 20px;
-  border-left: 3px solid var(--primary);
+  border-left: 3px solid rgba(255,255,255,0.2);
   padding-left: 10px;
 }
 </style>
