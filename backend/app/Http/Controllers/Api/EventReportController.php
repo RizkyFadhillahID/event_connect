@@ -105,9 +105,15 @@ class EventReportController extends Controller
         $expenses = $event->expenses()->get();
 
         $categoriesBreakdown = [];
-        $budgetCategories = ['Konsumsi', 'Sound & Lighting', 'Venue / Akomodasi', 'Dekorasi & Stage', 'Talent & MC', 'Publikasi & Dok', 'Logistik & Ops', 'Lain-lain'];
+        $defaultCategories = ['Konsumsi', 'Sound & Lighting', 'Venue / Akomodasi', 'Dekorasi & Stage', 'Talent & MC', 'Publikasi & Dok', 'Logistik & Ops', 'Lain-lain'];
         
-        foreach ($budgetCategories as $cat) {
+        $categories = collect($defaultCategories)
+            ->merge($allocations->pluck('category'))
+            ->merge($expenses->pluck('category'))
+            ->unique()
+            ->values();
+        
+        foreach ($categories as $cat) {
             $allocated = $allocations->where('category', $cat)->sum('allocated_amount');
             $spent = $expenses->where('category', $cat)->sum('amount');
             $categoriesBreakdown[] = [
@@ -219,5 +225,60 @@ class EventReportController extends Controller
             ->exists();
 
         abort_unless($isMember, 403, 'Anda tidak memiliki akses ke laporan evaluasi event ini.');
+    }
+
+    /**
+     * Render the formal print evaluation report view.
+     */
+    public function printReport(Request $request, Event $event)
+    {
+        $token = $request->query('token');
+        if (!$token) {
+            abort(401, 'Token autentikasi tidak ditemukan.');
+        }
+
+        // Authenticate user via Personal Access Token
+        $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+        if (!$personalAccessToken) {
+            abort(401, 'Token autentikasi tidak valid atau telah kedaluwarsa.');
+        }
+
+        $user = $personalAccessToken->tokenable;
+        if (!$user) {
+            abort(401, 'Pengguna tidak valid.');
+        }
+
+        // Check if user has access to this event
+        $this->authorizeEventAccess($user, $event);
+
+        // Fetch finalized report
+        $report = $event->report()->with('user:id,name,role')->first();
+        if (!$report) {
+            abort(404, 'Laporan evaluasi belum diterbitkan oleh Project Manager untuk event ini.');
+        }
+
+        // Load organization details
+        $organization = \App\Models\Organization::findOrFail($user->organization_id);
+
+        // Run detailed queries for the report (with relations)
+        $allocations = $event->budgetAllocations()->orderBy('category')->get();
+        $expenses = $event->expenses()->with('user:id,name')->orderBy('spent_at')->get();
+        $tasks = $event->tasks()->with('assignee:id,name')->orderBy('due_date')->get();
+        $logistics = $event->logistics()->with(['inventory', 'user:id,name'])->orderBy('borrowed_at')->get();
+        $guests = $event->guests()->orderBy('name')->get();
+
+        $publishDate = $report->finalized_at ? Carbon::parse($report->finalized_at)->format('d M Y') : Carbon::now()->format('d M Y');
+
+        return view('report_print', [
+            'event' => $event,
+            'organization' => $organization,
+            'report' => $report,
+            'allocations' => $allocations,
+            'expenses' => $expenses,
+            'tasks' => $tasks,
+            'logistics' => $logistics,
+            'guests' => $guests,
+            'publishDate' => $publishDate
+        ]);
     }
 }

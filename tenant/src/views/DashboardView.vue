@@ -356,7 +356,7 @@ onMounted(async () => {
       api.get('/events?per_page=5'),
       auth.canManageUsers ? api.get('/users?per_page=1') : api.get('/users-list').catch(() => null),
       api.get('/my-tasks'),
-      api.get('/inventories').catch(() => ({ data: [] })),
+      api.get('/inventories?paginate=false').catch(() => ({ data: [] })),
       api.get('/dashboard/financials').catch(() => ({ data: [] }))
     ])
     

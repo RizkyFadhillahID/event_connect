@@ -115,6 +115,54 @@ class BudgetExpenseController extends Controller
         return response()->json(['message' => 'Transaksi pengeluaran berhasil dihapus.']);
     }
 
+    /**
+     * Update a budget allocation (Manager only).
+     */
+    public function updateAllocation(Request $request, Event $event, EventBudgetAllocation $allocation)
+    {
+        $this->authorizeManagerAccess($request->user());
+        abort_unless($allocation->event_id === $event->id, 400, 'Allocation does not belong to this event.');
+
+        $data = $request->validate([
+            'category' => 'required|string|max:100',
+            'allocated_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        $allocation->update($data);
+
+        return response()->json($allocation);
+    }
+
+    /**
+     * Update an expense transaction (Manager or Creator).
+     */
+    public function updateExpense(Request $request, Event $event, EventExpense $expense)
+    {
+        $this->authorizeEventAccess($request->user(), $event);
+        abort_unless($expense->event_id === $event->id, 400, 'Expense does not belong to this event.');
+
+        $user = $request->user();
+        $isManager = in_array($user->role, ['superadmin', 'project_manager']);
+        $isCreator = $expense->user_id === $user->id;
+        abort_unless($isManager || $isCreator, 403, 'Anda tidak memiliki hak untuk mengubah transaksi ini.');
+
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'category' => 'required|string|max:100',
+            'amount' => 'required|numeric|min:0',
+            'vendor_name' => 'nullable|string|max:255',
+            'payment_method' => 'required|string|max:50',
+            'payment_status' => 'required|string|max:50',
+            'spent_at' => 'required|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $expense->update($data);
+
+        return response()->json($expense->load('user:id,name,role'));
+    }
+
     // ------------------------------------------------------------------
 
     private function authorizeEventAccess($user, Event $event): void

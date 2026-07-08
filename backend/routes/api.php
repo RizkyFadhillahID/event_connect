@@ -33,6 +33,9 @@ Route::post('/landing/contact', [PublicLandingController::class, 'contact']);
 Route::post('/landing/register', [PublicLandingController::class, 'register']);
 Route::get('/landing/faqs', [PublicLandingController::class, 'faqs']);
 
+// Print evaluation report route (authenticates manually inside controller)
+Route::get('events/{event}/report/print', [EventReportController::class, 'printReport']);
+
 // Protected routes
 Route::middleware(['auth:sanctum', 'org.active'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -91,8 +94,10 @@ Route::middleware(['auth:sanctum', 'org.active'])->group(function () {
     // ---------------------------------------------------------------
     Route::get('events/{event}/budget', [BudgetExpenseController::class, 'index']);
     Route::post('events/{event}/budget/allocations', [BudgetExpenseController::class, 'storeAllocation']);
+    Route::put('events/{event}/budget/allocations/{allocation}', [BudgetExpenseController::class, 'updateAllocation']);
     Route::delete('events/{event}/budget/allocations/{allocation}', [BudgetExpenseController::class, 'destroyAllocation']);
     Route::post('events/{event}/budget/expenses', [BudgetExpenseController::class, 'storeExpense']);
+    Route::put('events/{event}/budget/expenses/{expense}', [BudgetExpenseController::class, 'updateExpense']);
     Route::delete('events/{event}/budget/expenses/{expense}', [BudgetExpenseController::class, 'destroyExpense']);
 
     // Global Warehouse Inventories
@@ -100,6 +105,9 @@ Route::middleware(['auth:sanctum', 'org.active'])->group(function () {
     Route::post('inventories', [LogisticController::class, 'storeInventory']);
     Route::delete('inventories/{inventory}', [LogisticController::class, 'destroyInventory']);
     Route::get('logistics/active', [LogisticController::class, 'indexAllActiveLogistics']);
+    Route::get('logistics/status-actions', [LogisticController::class, 'indexStatusActions']);
+    Route::post('logistics/status-actions', [LogisticController::class, 'storeStatusAction']);
+    Route::post('logistics/status-actions/{action}/resolve', [LogisticController::class, 'resolveStatusAction']);
 
     // Event Deployed Logistics
     Route::get('events/{event}/logistics', [LogisticController::class, 'indexEventLogistics']);

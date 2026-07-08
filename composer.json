@@ -1,0 +1,20 @@
+{
+    "name": "rizkyfadhillahid/event-connect-root",
+    "description": "Root composer to run all services (backend and frontends) in Capstone Event Connect",
+    "type": "project",
+    "license": "MIT",
+    "scripts": {
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "node backend/node_modules/concurrently/dist/bin/concurrently.js -c \"#93c5fd,#c4b5fd,#a7f3d0,#fdba74,#86efac,#fef08a,#f472b6\" \"cd backend && php artisan serve\" \"cd backend && php artisan queue:listen --tries=1 --timeout=0\" \"cd backend && php artisan reverb:start\" \"npm run dev --prefix backend\" \"npm run dev --prefix backoffice\" \"npm run dev --prefix tenant\" \"npm run dev --prefix website\" --names=\"api,queue,reverb,vite-back,backoffice,tenant,website\" --kill-others"
+        ],
+        "install-all": [
+            "Composer\\Config::disableProcessTimeout",
+            "cd backend && composer install",
+            "npm install --prefix backend",
+            "npm install --prefix backoffice",
+            "npm install --prefix tenant",
+            "npm install --prefix website"
+        ]
+    }
+}

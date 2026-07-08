@@ -1,17 +1,5 @@
 <template>
   <div class="logistics-page">
-    <!-- Header -->
-    <!-- <div class="page-header glass-card">
-      <div class="header-left">
-        <h2>Logistik &amp; Inventaris</h2>
-        <p>Kelola katalog inventaris gudang global dan pantau alokasi barang di lapangan</p>
-      </div>
-      <button v-if="auth.canManageEvents" class="btn btn-primary" @click="openCreate">
-        <Plus :size="18" />
-        Tambah Aset Baru
-      </button>
-    </div> -->
-
     <!-- Modal Tabs -->
     <div class="modal-tabs glass-card" style="padding: 12px 20px; margin-bottom: 0;">
       <button class="tab-btn" :class="{ active: activeTab === 'warehouse' }" @click="switchTab('warehouse')">
@@ -21,6 +9,10 @@
       <button class="tab-btn" :class="{ active: activeTab === 'distribution' }" @click="switchTab('distribution')">
         <Truck :size="16" style="margin-right: 6px;" />
         Distribusi Alat Aktif
+      </button>
+      <button class="tab-btn" :class="{ active: activeTab === 'status_actions' }" @click="switchTab('status_actions')">
+        <AlertCircle :size="16" style="margin-right: 6px;" />
+        Status Alat Bermasalah
       </button>
       <button v-if="auth.canManageEvents" class="btn btn-primary" @click="openCreate" style="margin-left: auto;">
         <Plus :size="18" />
@@ -107,6 +99,9 @@
                 </td>
                 <td v-if="auth.canManageEvents">
                   <div style="display:flex;gap:6px">
+                    <button v-if="item.available_quantity > 0" class="btn btn-glass btn-sm" @click="openStatusModal(item)" title="Pindahkan Status (Maintenance/Rusak)" style="color:#f59e0b">
+                      <Wrench :size="16" />
+                    </button>
                     <button class="btn btn-glass btn-sm" @click="openEdit(item)" title="Edit">
                       <Edit :size="16" />
                     </button>
@@ -119,11 +114,30 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <div v-if="pagination.last_page > 1" class="pagination" style="margin-top: 16px; padding: 0 20px 20px 20px;">
+          <button class="page-btn" :disabled="pagination.current_page === 1" @click="fetchInventory(pagination.current_page - 1)" title="Sebelumnya">
+            <ChevronLeft :size="18" />
+          </button>
+          <button
+            v-for="p in pagination.last_page"
+            :key="p"
+            class="page-btn"
+            :class="{ active: p === pagination.current_page }"
+            @click="fetchInventory(p)"
+          >
+            {{ p }}
+          </button>
+          <button class="page-btn" :disabled="pagination.current_page === pagination.last_page" @click="fetchInventory(pagination.current_page + 1)" title="Selanjutnya">
+            <ChevronRight :size="18" />
+          </button>
+        </div>
       </div>
     </template>
 
     <!-- Tab 2: Active Distribution -->
-    <template v-else>
+    <template v-else-if="activeTab === 'distribution'">
       <div class="glass-card table-container" style="margin-top: 16px;">
         <div v-if="loading" class="loading-state">
           <Loader2 :size="24" class="spinner-icon" />
@@ -161,13 +175,14 @@
                 </td>
                 <td style="font-weight:700">{{ dist.quantity }} unit</td>
                 <td>
-                  <div class="pic-cell">
+                  <div class="pic-cell" v-if="dist.user">
                     <div class="pic-avatar">{{ dist.user?.name.charAt(0) }}</div>
                     <div>
                       <div style="font-weight:500">{{ dist.user?.name }}</div>
                       <div style="font-size:10px;color:var(--text-muted)">{{ roleLabel(dist.user?.role) }}</div>
                     </div>
                   </div>
+                  <span v-else style="color:var(--text-muted)">—</span>
                 </td>
                 <td>{{ formatDate(dist.borrowed_at) }}</td>
                 <td>
@@ -188,6 +203,110 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="distPagination.last_page > 1" class="pagination" style="margin-top: 16px; padding: 0 20px 20px 20px;">
+          <button class="page-btn" :disabled="distPagination.current_page === 1" @click="fetchDistributions(distPagination.current_page - 1)" title="Sebelumnya">
+            <ChevronLeft :size="18" />
+          </button>
+          <button
+            v-for="p in distPagination.last_page"
+            :key="p"
+            class="page-btn"
+            :class="{ active: p === distPagination.current_page }"
+            @click="fetchDistributions(p)"
+          >
+            {{ p }}
+          </button>
+          <button class="page-btn" :disabled="distPagination.current_page === distPagination.last_page" @click="fetchDistributions(distPagination.current_page + 1)" title="Selanjutnya">
+            <ChevronRight :size="18" />
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Tab 3: Status Actions (Maintenance / Damaged) -->
+    <template v-else-if="activeTab === 'status_actions'">
+      <div class="glass-card table-container" style="margin-top: 16px;">
+        <div v-if="loading" class="loading-state">
+          <Loader2 :size="24" class="spinner-icon" />
+          <span>Memuat data status alat bermasalah...</span>
+        </div>
+        <div v-else class="table-wrap">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>Nama Barang</th>
+                <th>Kategori Kondisi</th>
+                <th>Jumlah</th>
+                <th>Penanggung Jawab (PIC)</th>
+                <th>Tgl Dilaporkan</th>
+                <th>Catatan</th>
+                <th v-if="auth.canManageEvents">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="statusActions.length === 0">
+                <td :colspan="auth.canManageEvents ? 7 : 6" style="text-align:center;color:var(--text-muted);padding:32px">Tidak ada alat yang sedang dalam pemeliharaan atau rusak</td>
+              </tr>
+              <tr v-for="act in statusActions" :key="act.id">
+                <td>
+                  <div class="item-cell">
+                    <div class="item-icon" :class="`icon-${act.type}`">
+                      <Package :size="16" />
+                    </div>
+                    <span style="font-weight:600">{{ act.inventory?.item_name }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge" :class="`badge-status-${act.type}`">
+                    {{ act.type === 'maintenance' ? 'Maintenance' : 'Broken' }}
+                  </span>
+                </td>
+                <td style="font-weight:700">{{ act.quantity }} unit</td>
+                <td>
+                  <div class="pic-cell" v-if="act.user">
+                    <div class="pic-avatar">{{ act.user.name.charAt(0) }}</div>
+                    <div>
+                      <div style="font-weight:500">{{ act.user.name }}</div>
+                      <div style="font-size:10px;color:var(--text-muted)">{{ roleLabel(act.user.role) }}</div>
+                    </div>
+                  </div>
+                  <span v-else style="color:var(--text-muted)">—</span>
+                </td>
+                <td>{{ formatDate(act.created_at) }}</td>
+                <td style="color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="act.notes">
+                  {{ act.notes || '—' }}
+                </td>
+                <td v-if="auth.canManageEvents">
+                  <button class="btn btn-primary btn-sm" @click="openResolveModal(act)">
+                    <Check :size="14" style="margin-right: 4px;" />
+                    Selesaikan
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="statusPagination.last_page > 1" class="pagination" style="margin-top: 16px; padding: 0 20px 20px 20px;">
+          <button class="page-btn" :disabled="statusPagination.current_page === 1" @click="fetchStatusActions(statusPagination.current_page - 1)" title="Sebelumnya">
+            <ChevronLeft :size="18" />
+          </button>
+          <button
+            v-for="p in statusPagination.last_page"
+            :key="p"
+            class="page-btn"
+            :class="{ active: p === statusPagination.current_page }"
+            @click="fetchStatusActions(p)"
+          >
+            {{ p }}
+          </button>
+          <button class="page-btn" :disabled="statusPagination.current_page === statusPagination.last_page" @click="fetchStatusActions(statusPagination.current_page + 1)" title="Selanjutnya">
+            <ChevronRight :size="18" />
+          </button>
         </div>
       </div>
     </template>
@@ -308,6 +427,112 @@
       </div>
     </Transition>
 
+    <!-- Create Status Action Modal -->
+    <Transition name="fade">
+      <div v-if="showStatusModal" class="modal-overlay" @click.self="closeStatusModal">
+        <div class="modal-box" style="max-width:480px">
+          <div class="modal-header">
+            <h2>Pindahkan Status Barang</h2>
+            <button class="btn btn-glass btn-sm" @click="closeStatusModal" title="Tutup">
+              <X :size="18" />
+            </button>
+          </div>
+
+          <transition name="fade">
+            <div v-if="statusFormError" class="alert alert-error">{{ statusFormError }}</div>
+          </transition>
+
+          <form @submit.prevent="submitStatusAction">
+            <div style="margin-bottom: 16px; background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px;">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Barang Terpilih</div>
+              <div style="font-weight:600; font-size:14px; margin-top:2px;">{{ selectedInventoryItem?.item_name }}</div>
+              <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Tersedia di Gudang: <strong>{{ selectedInventoryItem?.available_quantity }} unit</strong></div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Kategori Masalah *</label>
+                <select v-model="statusForm.type" class="glass-input" required>
+                  <option value="maintenance">Maintenance (Pemeliharaan)</option>
+                  <option value="damaged">Rusak (Broken)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Jumlah Unit *</label>
+                <input v-model.number="statusForm.quantity" type="number" min="1" :max="selectedInventoryItem?.available_quantity" class="glass-input" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Penanggung Jawab (PIC) *</label>
+              <select v-model="statusForm.user_id" class="glass-input" required>
+                <option value="">Pilih PIC Staff</option>
+                <option v-for="u in usersList" :key="u.id" :value="u.id">{{ u.name }} ({{ roleLabel(u.role) }})</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Catatan Kerusakan / Keterangan perbaikan *</label>
+              <textarea v-model="statusForm.notes" class="glass-input" required rows="3" placeholder="Masukkan detail alasan pemindahan..."></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+              <button type="button" class="btn btn-glass" @click="closeStatusModal">Batal</button>
+              <button type="submit" class="btn btn-primary" :disabled="submitting">
+                <Loader2 v-if="submitting" :size="16" class="spinner-icon" />
+                <span v-else>Pindahkan</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Resolve Status Action Modal -->
+    <Transition name="fade">
+      <div v-if="showResolveModal" class="modal-overlay" @click.self="closeResolveModal">
+        <div class="modal-box" style="max-width:480px">
+          <div class="modal-header">
+            <h2>Resolusi Status Barang</h2>
+            <button class="btn btn-glass btn-sm" @click="closeResolveModal" title="Tutup">
+              <X :size="18" />
+            </button>
+          </div>
+
+          <form @submit.prevent="submitResolveStatusAction">
+            <div style="margin-bottom: 16px; background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px;">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Barang Terkait</div>
+              <div style="font-weight:600; font-size:14px; margin-top:2px;">{{ selectedStatusAction?.inventory?.item_name }}</div>
+              <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                Jumlah: <strong>{{ selectedStatusAction?.quantity }} unit</strong> | Status: <strong>{{ selectedStatusAction?.type === 'maintenance' ? 'Maintenance' : 'Rusak' }}</strong>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Opsi Penyelesaian *</label>
+              <select v-model="resolveForm.resolution" class="glass-input" required>
+                <option value="repaired">Selesai Diperbaiki (Kembali Siap Pakai)</option>
+                <option value="discarded">Dibuang / Rusak Total (Mengurangi Total Aset)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Catatan Resolusi</label>
+              <textarea v-model="resolveForm.notes" class="glass-input" rows="3" placeholder="Masukkan keterangan tambahan jika ada..."></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+              <button type="button" class="btn btn-glass" @click="closeResolveModal">Batal</button>
+              <button type="submit" class="btn btn-primary" :disabled="submitting">
+                <Loader2 v-if="submitting" :size="16" class="spinner-icon" />
+                <span v-else>Konfirmasi Resolusi</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Global Inventory Delete Confirm Modal -->
     <Transition name="fade">
       <div v-if="deleteTarget" class="modal-overlay" @click.self="deleteTarget = null">
@@ -332,7 +557,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { Plus, Boxes, Truck, Loader2, Package, Trash2, Edit, X, AlertCircle, ArrowDownLeft } from 'lucide-vue-next'
+import { Plus, Boxes, Truck, Loader2, Package, Trash2, Edit, X, AlertCircle, ArrowDownLeft, Wrench, Check, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
 
@@ -343,8 +568,13 @@ const search = ref('')
 const filterStatus = ref('')
 const filterOwnership = ref('')
 
+const pagination = ref({ current_page: 1, last_page: 1, per_page: 10 })
+const distPagination = ref({ current_page: 1, last_page: 1, per_page: 10 })
+const statusPagination = ref({ current_page: 1, last_page: 1, per_page: 10 })
 const inventories = ref([])
 const activeDistributions = ref([])
+const statusActions = ref([])
+const usersList = ref([])
 
 // Form states
 const showModal = ref(false)
@@ -364,6 +594,24 @@ const returnForm = ref({
   event_name: '',
   returned_at: new Date().toISOString().substring(0, 10),
   return_status: 'complete',
+  notes: ''
+})
+
+// Status Action state
+const showStatusModal = ref(false)
+const showResolveModal = ref(false)
+const statusFormError = ref('')
+const selectedInventoryItem = ref(null)
+const selectedStatusAction = ref(null)
+const statusForm = ref({
+  inventory_id: null,
+  user_id: '',
+  type: 'maintenance',
+  quantity: 1,
+  notes: ''
+})
+const resolveForm = ref({
+  resolution: 'repaired',
   notes: ''
 })
 
@@ -391,22 +639,30 @@ async function switchTab(tab) {
   filterOwnership.value = ''
   if (tab === 'warehouse') {
     await fetchInventory()
-  } else {
+  } else if (tab === 'distribution') {
     await fetchDistributions()
+  } else if (tab === 'status_actions') {
+    await fetchStatusActions()
   }
 }
 
-async function fetchInventory() {
+async function fetchInventory(page = 1) {
   loading.value = true
   try {
     const res = await api.get('/inventories', {
       params: {
+        page,
         search: search.value,
         status: filterStatus.value,
         ownership: filterOwnership.value
       }
     })
-    inventories.value = res.data
+    inventories.value = res.data.data ?? res.data ?? []
+    pagination.value = {
+      current_page: res.data.current_page ?? 1,
+      last_page: res.data.last_page ?? 1,
+      per_page: res.data.per_page ?? 10
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -414,15 +670,46 @@ async function fetchInventory() {
   }
 }
 
-async function fetchDistributions() {
+async function fetchDistributions(page = 1) {
   loading.value = true
   try {
-    const res = await api.get('/logistics/active')
-    activeDistributions.value = res.data
+    const res = await api.get('/logistics/active', { params: { page } })
+    activeDistributions.value = res.data.data ?? res.data ?? []
+    distPagination.value = {
+      current_page: res.data.current_page ?? 1,
+      last_page: res.data.last_page ?? 1,
+      per_page: res.data.per_page ?? 10
+    }
   } catch (e) {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchStatusActions(page = 1) {
+  loading.value = true
+  try {
+    const res = await api.get('/logistics/status-actions', { params: { page } })
+    statusActions.value = res.data.data ?? res.data ?? []
+    statusPagination.value = {
+      current_page: res.data.current_page ?? 1,
+      last_page: res.data.last_page ?? 1,
+      per_page: res.data.per_page ?? 10
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchUsersList() {
+  try {
+    const res = await api.get('/users-list')
+    usersList.value = res.data
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -465,7 +752,7 @@ async function submitForm() {
   try {
     await api.post('/inventories', payload)
     closeModal()
-    await fetchInventory()
+    await fetchInventory(editId.value ? pagination.value.current_page : 1)
   } catch (e) {
     formError.value = e.response?.data?.message || 'Gagal menyimpan data barang.'
   } finally {
@@ -482,7 +769,7 @@ async function doDelete() {
   try {
     await api.delete(`/inventories/${deleteTarget.value.id}`)
     deleteTarget.value = null
-    await fetchInventory()
+    await fetchInventory(pagination.value.current_page)
   } catch (e) {
     window.alert(e.response?.data?.message || 'Gagal menghapus barang.')
   } finally {
@@ -517,9 +804,69 @@ async function submitReturn() {
       notes: returnForm.value.notes
     })
     closeReturnModal()
-    await fetchDistributions()
+    await fetchDistributions(distPagination.value.current_page)
   } catch (e) {
     window.alert(e.response?.data?.message || 'Gagal mengembalikan barang.')
+  } finally {
+    submitting.value = false
+  }
+}
+
+function openStatusModal(item) {
+  selectedInventoryItem.value = item
+  statusForm.value = {
+    inventory_id: item.id,
+    user_id: '',
+    type: 'maintenance',
+    quantity: 1,
+    notes: ''
+  }
+  statusFormError.value = ''
+  showStatusModal.value = true
+  fetchUsersList()
+}
+
+function closeStatusModal() {
+  showStatusModal.value = false
+  selectedInventoryItem.value = null
+}
+
+async function submitStatusAction() {
+  statusFormError.value = ''
+  submitting.value = true
+  try {
+    await api.post('/logistics/status-actions', statusForm.value)
+    closeStatusModal()
+    await fetchInventory(pagination.value.current_page)
+  } catch (e) {
+    statusFormError.value = e.response?.data?.message || 'Gagal memindahkan status barang.'
+  } finally {
+    submitting.value = false
+  }
+}
+
+function openResolveModal(act) {
+  selectedStatusAction.value = act
+  resolveForm.value = {
+    resolution: 'repaired',
+    notes: ''
+  }
+  showResolveModal.value = true
+}
+
+function closeResolveModal() {
+  showResolveModal.value = false
+  selectedStatusAction.value = null
+}
+
+async function submitResolveStatusAction() {
+  submitting.value = true
+  try {
+    await api.post(`/logistics/status-actions/${selectedStatusAction.value.id}/resolve`, resolveForm.value)
+    closeResolveModal()
+    await fetchStatusActions(statusPagination.value.current_page)
+  } catch (e) {
+    window.alert(e.response?.data?.message || 'Gagal menyelesaikan status barang.')
   } finally {
     submitting.value = false
   }

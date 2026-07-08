@@ -16,7 +16,7 @@ class UserController extends Controller
             ->orWhere('email', 'like', "%{$request->search}%"))
             ->when($request->role, fn($q) => $q->where('role', $request->role))
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate(10);
 
         return response()->json($users);
     }

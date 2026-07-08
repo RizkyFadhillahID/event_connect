@@ -60,63 +60,55 @@
         <!-- Recent EOs -->
         <div class="detail-card glass-card">
           <h3 class="dc-title">Customer Baru Terdaftar</h3>
-          <div class="table-wrap">
-            <table class="glass-table">
-              <thead>
-                <tr>
-                  <th>Nama EO</th>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>Terdaftar</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="org in stats.recent_organizations" :key="org.id">
-                  <td><strong>{{ org.name }}</strong></td>
-                  <td>{{ org.email }}</td>
-                  <td>
-                    <span :class="['badge', `badge-${org.status}`]">{{ formatStatus(org.status) }}</span>
-                  </td>
-                  <td>{{ formatDate(org.created_at) }}</td>
-                </tr>
-                <tr v-if="!stats.recent_organizations?.length">
-                  <td colspan="4" style="text-align: center; color: var(--text-muted);">Belum ada EO yang terdaftar.</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="list-container">
+            <div v-for="org in stats.recent_organizations" :key="org.id" class="list-item">
+              <div class="item-left">
+                <div class="item-avatar avatar-blue">
+                  {{ org.name ? org.name.charAt(0).toUpperCase() : 'E' }}
+                </div>
+                <div class="item-info">
+                  <div class="item-name" :title="org.name">{{ org.name }}</div>
+                  <div class="item-sub">{{ org.email }}</div>
+                </div>
+              </div>
+              <div class="item-right">
+                <span :class="['badge', `badge-${org.status}`]">{{ formatStatus(org.status) }}</span>
+                <span class="item-date">{{ formatDate(org.created_at) }}</span>
+              </div>
+            </div>
+            <div v-if="!stats.recent_organizations?.length" class="empty-state">
+              Belum ada EO yang terdaftar.
+            </div>
           </div>
         </div>
 
         <!-- Top EOs -->
         <div class="detail-card glass-card">
           <h3 class="dc-title">EO Paling Aktif (Event Terbanyak)</h3>
-          <div class="table-wrap">
-            <table class="glass-table">
-              <thead>
-                <tr>
-                  <th>Nama EO</th>
-                  <th>Email</th>
-                  <th>Jumlah Event</th>
-                  <th>Kuota Event</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="org in stats.top_organizations" :key="org.id">
-                  <td><strong>{{ org.name }}</strong></td>
-                  <td>{{ org.email }}</td>
-                  <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <strong>{{ org.events_count }} event</strong>
-                      <span style="font-size: 11px; color: var(--text-muted);">({{ Math.round(org.events_count / org.max_events * 100) }}%)</span>
-                    </div>
-                  </td>
-                  <td>{{ org.max_events }} event</td>
-                </tr>
-                <tr v-if="!stats.top_organizations?.length">
-                  <td colspan="4" style="text-align: center; color: var(--text-muted);">Belum ada EO yang terdaftar.</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="list-container">
+            <div v-for="org in stats.top_organizations" :key="org.id" class="list-item">
+              <div class="item-left">
+                <div class="item-avatar avatar-teal">
+                  {{ org.name ? org.name.charAt(0).toUpperCase() : 'E' }}
+                </div>
+                <div class="item-info">
+                  <div class="item-name" :title="org.name">{{ org.name }}</div>
+                  <div class="item-sub">{{ org.email }}</div>
+                </div>
+              </div>
+              <div class="item-right progress-col">
+                <div class="progress-info">
+                  <span class="progress-count"><strong>{{ org.events_count }}</strong> / {{ org.max_events }} event</span>
+                  <span class="progress-percentage">{{ org.max_events > 0 ? Math.round(org.events_count / org.max_events * 100) : 0 }}%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" :style="{ width: Math.min(org.max_events > 0 ? Math.round(org.events_count / org.max_events * 100) : 0, 100) + '%' }"></div>
+                </div>
+              </div>
+            </div>
+            <div v-if="!stats.top_organizations?.length" class="empty-state">
+              Belum ada EO yang terdaftar.
+            </div>
           </div>
         </div>
       </div>
@@ -277,5 +269,126 @@ onMounted(() => {
   margin-bottom: 20px;
   border-left: 3px solid var(--primary);
   padding-left: 10px;
+}
+
+/* Details list styling */
+.list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  gap: 16px;
+}
+.list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0; /* allows text truncation */
+  flex: 1;
+}
+.item-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.avatar-blue {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+.avatar-teal {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+}
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.item-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.progress-col {
+  width: 160px;
+}
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+.progress-count {
+  color: var(--text-secondary);
+}
+.progress-percentage {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+}
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
 }
 </style>

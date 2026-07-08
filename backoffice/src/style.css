@@ -86,7 +86,7 @@ body {
 }
 .glass-input::placeholder { color: var(--text-muted); }
 .glass-input:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
-.glass-input option { background: #13243d; color: white; }
+select option, option { background: #13243d; color: white; }
 select.glass-input {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='rgba(255,255,255,0.5)'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");

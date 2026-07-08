@@ -405,7 +405,9 @@
                   <!-- Allocation Form -->
                   <Transition name="fade">
                     <div v-if="showAllocationForm" class="mini-form glass-card">
-                      <div style="font-weight:600;font-size:12px;margin-bottom:8px">Tambah/Update Alokasi</div>
+                      <div style="font-weight:600;font-size:12px;margin-bottom:8px">
+                        {{ editingAllocationId ? 'Edit Alokasi Anggaran' : 'Tambah/Update Alokasi' }}
+                      </div>
                       <form @submit.prevent="submitAllocation">
                         <div class="form-group-sm">
                           <label>Kategori *</label>
@@ -444,9 +446,14 @@
                         <span class="alloc-percent">{{ getAllocPercent(alloc) }}% terpakai ({{ formatCurrency(getAllocSpent(alloc)) }})</span>
                       </div>
                       <div v-if="alloc.notes" class="alloc-notes">{{ alloc.notes }}</div>
-                      <button v-if="auth.canManageEvents" type="button" class="delete-alloc-btn" @click="deleteAllocation(alloc)" title="Hapus Alokasi">
-                        <Trash2 :size="12" />
-                      </button>
+                      <div class="alloc-actions-row" v-if="auth.canManageEvents">
+                        <button type="button" class="action-btn-sm edit-btn" @click="editAllocation(alloc)" title="Edit Alokasi">
+                          <Edit :size="12" style="margin-right: 4px;" /> Edit
+                        </button>
+                        <button type="button" class="action-btn-sm delete-btn" @click="deleteAllocation(alloc)" title="Hapus Alokasi">
+                          <Trash2 :size="12" style="margin-right: 4px;" /> Hapus
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -464,7 +471,9 @@
                   <!-- Expense Form -->
                   <Transition name="fade">
                     <div v-if="showExpenseForm" class="mini-form glass-card">
-                      <div style="font-weight:600;font-size:12px;margin-bottom:8px">Catat Transaksi Pengeluaran</div>
+                      <div style="font-weight:600;font-size:12px;margin-bottom:8px">
+                        {{ editingExpenseId ? 'Edit Catatan Pengeluaran' : 'Catat Transaksi Pengeluaran' }}
+                      </div>
                       <form @submit.prevent="submitExpense">
                         <div class="form-group-sm">
                           <label>Nama Transaksi *</label>
@@ -538,9 +547,14 @@
                         <span class="badge" :class="exp.payment_status === 'paid' ? 'badge-completed' : 'badge-review'" style="font-size:9px;padding:1px 5px">{{ exp.payment_status === 'paid' ? 'Paid' : 'Pending' }}</span>
                       </div>
                       <div v-if="exp.notes" class="exp-notes">Catatan: {{ exp.notes }}</div>
-                      <button v-if="auth.canManageEvents || exp.user_id === auth.user?.id" type="button" class="delete-exp-btn" @click="deleteExpense(exp)" title="Hapus Transaksi">
-                        <Trash2 :size="12" />
-                      </button>
+                      <div class="expense-actions-row" v-if="auth.canManageEvents || exp.user_id === auth.user?.id">
+                        <button type="button" class="action-btn-sm edit-btn" @click="editExpense(exp)" title="Edit Transaksi">
+                          <Edit :size="12" style="margin-right: 4px;" /> Edit
+                        </button>
+                        <button type="button" class="action-btn-sm delete-btn" @click="deleteExpense(exp)" title="Hapus Transaksi">
+                          <Trash2 :size="12" style="margin-right: 4px;" /> Hapus
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -953,10 +967,15 @@
                           <div v-for="cat in reportData.report?.budget_snapshot?.categories" :key="cat.category" class="rs-cat-item">
                             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px">
                               <span style="color:var(--text-secondary)">{{ cat.category }}</span>
-                              <span style="font-weight:600">{{ formatCurrency(cat.spent) }}</span>
+                              <span style="font-weight:600; font-size: 10px;">
+                                <span :style="{ color: cat.allocated === 0 ? (cat.spent > 0 ? '#ef4444' : 'inherit') : (cat.spent > cat.allocated ? '#ef4444' : 'inherit') }">
+                                  {{ formatCurrency(cat.spent) }}
+                                </span>
+                                <span style="color:var(--text-muted)"> / {{ formatCurrency(cat.allocated) }}</span>
+                              </span>
                             </div>
                             <div class="bp-track" style="height:4px; background:rgba(255,255,255,0.06)">
-                              <div class="bp-fill" :class="{ 'bp-over': cat.spent > cat.allocated }" :style="`width: ${Math.min(cat.allocated > 0 ? (cat.spent / cat.allocated) * 100 : 0, 100)}%`"></div>
+                              <div class="bp-fill" :class="{ 'bp-over': cat.allocated === 0 ? cat.spent > 0 : cat.spent > cat.allocated }" :style="`width: ${Math.min(cat.allocated > 0 ? (cat.spent / cat.allocated) * 100 : (cat.spent > 0 ? 100 : 0), 100)}%`"></div>
                             </div>
                           </div>
                         </div>
@@ -981,7 +1000,7 @@
                     <div style="text-align: left;">
                       <div>Diterbitkan oleh Project Manager:</div>
                       <strong style="color: #fff; font-size:12px; display:inline-block; margin-top:2px;">{{ reportData.report?.user?.name || 'Project Manager' }}</strong>
-                      <div style="font-size:10px; color:var(--text-muted);">{{ formatRole(reportData.report?.user?.role || '') }}</div>
+                      <div style="font-size:10px; color:var(--text-muted);">{{ roleLabel(reportData.report?.user?.role || '') }}</div>
                     </div>
                     <div style="text-align: right;">
                       <div>Tanggal Penerbitan Laporan:</div>
@@ -1551,7 +1570,7 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import { Plus, Calendar, Edit, Trash2, ChevronLeft, ChevronRight, X, MapPin, Clock, DollarSign, Users, User, AlertCircle, Loader2, CheckSquare, ArrowDownLeft, Package, FileBarChart2, Printer, ArrowLeft } from 'lucide-vue-next'
+import { Plus, Calendar, Edit, Trash2, ChevronLeft, ChevronRight, X, MapPin, Clock, DollarSign, Users, User, AlertCircle, Loader2, CheckSquare, ArrowDownLeft, Package, FileBarChart2, Printer, ArrowLeft, Boxes } from 'lucide-vue-next'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
@@ -1839,6 +1858,9 @@ const expenseForm = ref({
   notes: ''
 })
 
+const editingAllocationId = ref(null)
+const editingExpenseId = ref(null)
+
 const budgetPercent = computed(() => {
   if (!budgetData.value.event_budget) return 0
   return Math.round((budgetData.value.total_spent / budgetData.value.event_budget) * 100)
@@ -1881,11 +1903,13 @@ async function fetchBudget() {
 
 function cancelAllocationForm() {
   showAllocationForm.value = false
+  editingAllocationId.value = null
   allocationForm.value = { category: '', allocated_amount: '', notes: '' }
 }
 
 function cancelExpenseForm() {
   showExpenseForm.value = false
+  editingExpenseId.value = null
   expenseForm.value = {
     title: '',
     category: '',
@@ -1898,11 +1922,40 @@ function cancelExpenseForm() {
   }
 }
 
+function editAllocation(alloc) {
+  editingAllocationId.value = alloc.id
+  allocationForm.value = {
+    category: alloc.category,
+    allocated_amount: alloc.allocated_amount,
+    notes: alloc.notes || ''
+  }
+  showAllocationForm.value = true
+}
+
+function editExpense(exp) {
+  editingExpenseId.value = exp.id
+  expenseForm.value = {
+    title: exp.title,
+    category: exp.category,
+    amount: exp.amount,
+    vendor_name: exp.vendor_name || '',
+    payment_method: exp.payment_method || 'cash',
+    payment_status: exp.payment_status || 'paid',
+    spent_at: exp.spent_at ? exp.spent_at.substring(0, 10) : new Date().toISOString().substring(0, 10),
+    notes: exp.notes || ''
+  }
+  showExpenseForm.value = true
+}
+
 async function submitAllocation() {
   if (!allocationForm.value.category || !allocationForm.value.allocated_amount) return
   submittingAllocation.value = true
   try {
-    await api.post(`/events/${detailEvent.value.id}/budget/allocations`, allocationForm.value)
+    if (editingAllocationId.value) {
+      await api.put(`/events/${detailEvent.value.id}/budget/allocations/${editingAllocationId.value}`, allocationForm.value)
+    } else {
+      await api.post(`/events/${detailEvent.value.id}/budget/allocations`, allocationForm.value)
+    }
     cancelAllocationForm()
     await fetchBudget()
   } catch (e) {
@@ -1926,7 +1979,11 @@ async function submitExpense() {
   if (!expenseForm.value.title || !expenseForm.value.category || !expenseForm.value.amount) return
   submittingExpense.value = true
   try {
-    await api.post(`/events/${detailEvent.value.id}/budget/expenses`, expenseForm.value)
+    if (editingExpenseId.value) {
+      await api.put(`/events/${detailEvent.value.id}/budget/expenses/${editingExpenseId.value}`, expenseForm.value)
+    } else {
+      await api.post(`/events/${detailEvent.value.id}/budget/expenses`, expenseForm.value)
+    }
     cancelExpenseForm()
     await fetchBudget()
   } catch (e) {
@@ -2023,7 +2080,7 @@ async function fetchLogistic() {
 
 async function fetchAvailableWarehouse() {
   try {
-    const res = await api.get('/inventories', { params: { status: 'ready' } })
+    const res = await api.get('/inventories', { params: { status: 'ready', paginate: 'false' } })
     availableWarehouseItems.value = res.data.filter(item => item.available_quantity > 0)
   } catch (e) {
     console.error('Failed to fetch warehouse items:', e)
@@ -2334,7 +2391,10 @@ async function deleteReport() {
 }
 
 function printReport() {
-  window.print()
+  const token = localStorage.getItem('token') || ''
+  const apiBase = api.defaults.baseURL || ''
+  const url = `${apiBase}/events/${detailEvent.value.id}/report/print?token=${token}`
+  window.open(url, '_blank')
 }
 </script>
 
@@ -2632,28 +2692,36 @@ function printReport() {
   font-style: italic;
   margin-top: 2px;
 }
-.delete-alloc-btn, .delete-exp-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  opacity: 0;
-  transition: all 0.15s;
+.alloc-actions-row, .expense-actions-row {
   display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 8px;
+}
+.action-btn-sm {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s;
 }
-.alloc-item:hover .delete-alloc-btn, .expense-item:hover .delete-exp-btn {
-  opacity: 1;
+.action-btn-sm:hover.edit-btn {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.2);
 }
-.delete-alloc-btn:hover, .delete-exp-btn:hover {
+.action-btn-sm:hover.delete-btn {
   color: #ef4444;
-  background: rgba(239,68,68,0.1);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
 }
 
 .exp-meta-row, .exp-bottom-row {

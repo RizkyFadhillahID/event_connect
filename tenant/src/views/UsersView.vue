@@ -182,7 +182,7 @@ const users = ref([])
 const loading = ref(true)
 const search = ref('')
 const filterRole = ref('')
-const pagination = ref({ current_page: 1, last_page: 1, per_page: 15 })
+const pagination = ref({ current_page: 1, last_page: 1, per_page: 10 })
 
 const showModal = ref(false)
 const editId = ref(null)

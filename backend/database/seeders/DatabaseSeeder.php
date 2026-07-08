@@ -14,10 +14,15 @@ class DatabaseSeeder extends Seeder
         // Seed Platform Admin first
         $this->call(PlatformAdminSeeder::class);
         $this->call(LandingContentSeeder::class);
+        $this->call(FaqSeeder::class);
 
         // Get default organization
         $org = \App\Models\Organization::where('slug', 'default')->first();
         $orgId = $org ? $org->id : 1;
+
+        // Clean up existing default org users and events to ensure idempotency
+        User::where('organization_id', $orgId)->delete();
+        Event::where('organization_id', $orgId)->delete();
 
         // Create Superadmin
         $superadmin = User::create([
@@ -162,5 +167,14 @@ class DatabaseSeeder extends Seeder
             ];
             $event->personnel()->sync($syncData);
         }
+
+        // Call the new TenantDummySeeder to generate PT Mahakarya Event Nusantara data
+        $this->call(TenantDummySeeder::class);
+
+        // Call the new TwoTenantsDummySeeder to generate PT Aurora Creative Planner and CV Sinergi Karya Convex data
+        $this->call(TwoTenantsDummySeeder::class);
+
+        // Call the new ContactMessageSeeder to generate landing page inbox dummy data
+        $this->call(ContactMessageSeeder::class);
     }
 }

@@ -10,12 +10,14 @@ class PlatformAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        PlatformAdmin::create([
-            'name'     => 'Platform Owner',
-            'email'    => 'admin@eventconnect.com',
-            'password' => Hash::make('password123'),
-            'role'     => 'owner',
-            'status'   => 'active',
-        ]);
+        PlatformAdmin::updateOrCreate(
+            ['email' => 'admin@eventconnect.com'],
+            [
+                'name'     => 'Platform Owner',
+                'password' => Hash::make('password123'),
+                'role'     => 'owner',
+                'status'   => 'active',
+            ]
+        );
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Inventory;
 use App\Models\EventLogistic;
 use App\Models\EventExpense;
+use App\Models\InventoryStatusAction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -42,7 +43,11 @@ class LogisticController extends Controller
             $query->where('ownership', $request->ownership);
         }
 
-        $inventories = $query->orderBy('item_name')->get();
+        if ($request->query('paginate') === 'false') {
+            $inventories = $query->orderBy('item_name')->get();
+        } else {
+            $inventories = $query->orderBy('item_name')->paginate(10);
+        }
 
         return response()->json($inventories);
     }
@@ -122,9 +127,10 @@ class LogisticController extends Controller
     public function indexAllActiveLogistics(Request $request)
     {
         $logistics = EventLogistic::whereNull('returned_at')
+            ->whereHas('event')
             ->with(['event:id,name', 'inventory', 'user:id,name,role'])
             ->orderBy('borrowed_at', 'desc')
-            ->get();
+            ->paginate(10);
 
         return response()->json($logistics);
     }
@@ -284,6 +290,101 @@ class LogisticController extends Controller
 
         return response()->json(['message' => 'Alokasi logistik berhasil dibatalkan.']);
     }
+
+    /**
+     * Get all active (unresolved) inventory status actions (maintenance / damaged).
+     */
+    public function indexStatusActions(Request $request)
+    {
+        $actions = InventoryStatusAction::where('status', 'active')
+            ->with(['inventory', 'user:id,name,role'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return response()->json($actions);
+    }
+
+    /**
+     * Move inventory items to maintenance or damaged state.
+     */
+    public function storeStatusAction(Request $request)
+    {
+        $this->authorizeManagerAccess($request->user());
+
+        $data = $request->validate([
+            'inventory_id' => 'required|exists:inventories,id',
+            'user_id' => 'required|exists:users,id', // PIC
+            'type' => 'required|in:maintenance,damaged',
+            'quantity' => 'required|integer|min:1',
+            'notes' => 'nullable|string',
+        ]);
+
+        $inventory = Inventory::findOrFail($data['inventory_id']);
+
+        // Check if available quantity is enough
+        if ($inventory->available_quantity < $data['quantity']) {
+            return response()->json([
+                'message' => "Stok barang tidak mencukupi. Tersedia: {$inventory->available_quantity} unit."
+            ], 422);
+        }
+
+        $action = DB::transaction(function () use ($data, $inventory) {
+            // Decrement available stock
+            $inventory->decrement('available_quantity', $data['quantity']);
+
+            // Create status action record
+            $data['status'] = 'active';
+            $data['organization_id'] = $inventory->organization_id;
+            return InventoryStatusAction::create($data);
+        });
+
+        return response()->json($action->load(['inventory', 'user:id,name,role']), 201);
+    }
+
+    /**
+     * Resolve a maintenance or damaged inventory status action.
+     */
+    public function resolveStatusAction(Request $request, $actionId)
+    {
+        $this->authorizeManagerAccess($request->user());
+
+        // Resolve manually to ensure organizational scope applies correctly via global scope
+        $action = InventoryStatusAction::where('status', 'active')->findOrFail($actionId);
+
+        $data = $request->validate([
+            'resolution' => 'required|in:repaired,discarded', // repaired = back to ready, discarded = permanently reduce total stock
+            'notes' => 'nullable|string',
+        ]);
+
+        DB::transaction(function () use ($action, $data) {
+            $inventory = $action->inventory;
+
+            if ($data['resolution'] === 'repaired') {
+                // Return items back to available stock
+                $inventory->increment('available_quantity', $action->quantity);
+            } else {
+                // Permanently discard items: reduce total quantity
+                // available_quantity is already decremented, so we just decrease total_quantity
+                $inventory->decrement('total_quantity', $action->quantity);
+            }
+
+            // Append resolution to notes if provided
+            $resolvedNotes = $action->notes;
+            if (!empty($data['notes'])) {
+                $resolvedNotes = ($resolvedNotes ? $resolvedNotes . "\n" : "") . "Resolusi: " . $data['notes'];
+            }
+
+            $action->update([
+                'status' => 'resolved',
+                'resolved_at' => Carbon::now(),
+                'notes' => $resolvedNotes,
+            ]);
+        });
+
+        return response()->json($action->load(['inventory', 'user:id,name,role']));
+    }
+
+
 
 
     // =========================================================================

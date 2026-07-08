@@ -5,27 +5,27 @@
     <!-- Sidebar -->
     <aside class="sidebar glass-card" :class="{ collapsed: sidebarCollapsed, 'mobile-open': mobileMenuOpen }">
       <div class="sidebar-header">
-        <div class="brand" v-if="!sidebarCollapsed">
-          <img src="/logo.png" alt="EventConnect Logo" class="brand-logo" />
-          <div class="brand-details" style="display: flex; flex-direction: column;">
-            <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-              <span class="org-name" style="font-size: 11px; color: var(--text-muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;" :title="auth.organizationName">{{ auth.organizationName }}</span>
-              <span 
-                v-if="auth.organization?.plan" 
-                class="plan-badge" 
-                :class="auth.organization?.plan"
-                @click="triggerUpgradeModal"
-                title="Klik untuk detail & upgrade paket"
-              >
-                {{ auth.organization?.plan }}
-              </span>
-            </div>
+        <div class="header-top">
+          <div class="brand" v-if="!sidebarCollapsed">
+            <img src="/logo.png" alt="EventConnect Logo" class="brand-logo" />
           </div>
+          <button class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed">
+            <ChevronLeft v-if="!sidebarCollapsed" :size="18" />
+            <ChevronRight v-else :size="18" />
+          </button>
         </div>
-        <button class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed">
-          <ChevronLeft v-if="!sidebarCollapsed" :size="18" />
-          <ChevronRight v-else :size="18" />
-        </button>
+        <div class="brand-details" v-if="!sidebarCollapsed">
+          <span class="org-name" :title="auth.organizationName">{{ auth.organizationName }}</span>
+          <span 
+            v-if="auth.organization?.plan" 
+            class="plan-badge" 
+            :class="auth.organization?.plan"
+            @click="triggerUpgradeModal"
+            title="Klik untuk detail & upgrade paket"
+          >
+            {{ auth.organization?.plan }}
+          </span>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
@@ -353,6 +353,22 @@ async function confirmLogout() {
 }
 .brand { display: flex; align-items: center; gap: 6px; }
 .brand-logo { height: 44px; object-fit: contain; }
+.sidebar-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 28px;
+  min-height: 40px;
+  gap: 8px;
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.sidebar.collapsed .header-top {
+  justify-content: center;
+}
 .collapse-btn {
   background: rgba(255,255,255,0.1);
   border: 1px solid var(--glass-border);
@@ -368,6 +384,21 @@ async function confirmLogout() {
 }
 .collapse-btn:hover {
   background: rgba(255,255,255,0.15);
+}
+.brand-details {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 2px;
+}
+.org-name {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
 }
 
 .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 6px; }

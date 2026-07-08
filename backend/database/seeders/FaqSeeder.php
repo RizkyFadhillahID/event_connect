@@ -12,6 +12,8 @@ class FaqSeeder extends Seeder
      */
     public function run(): void
     {
+        Faq::truncate();
+
         $faqs = [
             [
                 'question' => 'Apakah EventConnect gratis untuk dicoba?',

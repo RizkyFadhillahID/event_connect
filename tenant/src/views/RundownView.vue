@@ -25,6 +25,9 @@
             <List :size="18" />
           </button>
         </div>
+        <button v-if="filters.event_id" class="btn btn-glass print-hide" @click="exportPDF" title="Cetak / Simpan PDF" style="display: inline-flex; align-items: center; gap: 6px;">
+          <Printer :size="18" /> Cetak PDF
+        </button>
         <button v-if="canManage" class="btn btn-primary" @click="openCreate">
           <Plus :size="18" /> Tambah Sesi
         </button>
@@ -416,6 +419,32 @@
       </div>
     </div>
 
+    <!-- ───────────────────────── PRINT-ONLY ALL DAY VIEW ───────────────────────── -->
+    <div class="print-only-container">
+      <div v-for="(dayItems, dayDate) in groupedByDateForPrint" :key="dayDate" class="day-block-print">
+        <div class="day-header-print">
+          {{ formatDayHeader(dayDate) }}
+        </div>
+        <div class="print-list">
+          <div v-for="item in dayItems" :key="item.id" class="print-item">
+            <div class="print-time-col">
+              {{ item.start_time }} – {{ item.end_time }}
+            </div>
+            <div class="print-content-col">
+              <div class="print-item-title">{{ item.title }}</div>
+              <div class="print-item-meta">
+                <span v-if="item.category">Kategori: {{ item.category }}</span>
+                <span v-if="item.pic"> | PIC: {{ item.pic.name }}</span>
+                <span v-if="item.location_note"> | Lokasi: {{ item.location_note }}</span>
+                <span v-if="item.status"> | Status: {{ statusLabel(item.status) }}</span>
+                <span v-if="item.delay_minutes > 0"> | Delay: {{ item.delay_minutes }}m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -426,15 +455,20 @@ import { useAuthStore } from '../stores/auth'
 import {
   Plus, X, Pencil, Trash2, Eye, List, Clock, Calendar,
   CalendarClock, Loader2, User, MapPin, AlertTriangle,
-  CheckSquare, History
+  CheckSquare, History, Printer
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
+
+function exportPDF() {
+  window.print()
+}
 
 // ───────────────────────────────────────────────────────────────
 // State
 // ───────────────────────────────────────────────────────────────
 const rundowns    = ref([])
+const allRundownsForPrint = ref([])
 const eventsList  = ref([])
 const personnelList = ref([])
 const eventTasks  = ref([])   // tasks for dep picker
@@ -565,6 +599,10 @@ async function fetchRundowns() {
     const res = await axios.get(`/events/${filters.value.event_id}/rundowns`, { params })
     rundowns.value  = res.data.data
     eventDates.value = res.data.dates
+
+    // Fetch all for print (ignoring event_date, status, category, search)
+    const printRes = await axios.get(`/events/${filters.value.event_id}/rundowns`)
+    allRundownsForPrint.value = printRes.data.data ?? []
   } finally {
     loading.value = false
   }
@@ -618,6 +656,21 @@ const groupedByDate = computed(() => {
     groups[d].push(item)
   }
   return groups
+})
+
+const groupedByDateForPrint = computed(() => {
+  const groups = {}
+  for (const item of allRundownsForPrint.value) {
+    const d = item.event_date
+    if (!groups[d]) groups[d] = []
+    groups[d].push(item)
+  }
+  // Sort keys (dates) chronologically
+  const sorted = {}
+  Object.keys(groups).sort().forEach(k => {
+    sorted[k] = groups[k].sort((a, b) => a.start_time.localeCompare(b.start_time))
+  })
+  return sorted
 })
 
 const availableTasksForDep = computed(() => {
@@ -1035,5 +1088,107 @@ onMounted(async () => {
   .form-grid     { grid-template-columns: 1fr; }
   .detail-layout { grid-template-columns: 1fr; }
   .filters { flex-direction: column; align-items: stretch; }
+}
+
+.print-only-container {
+  display: none;
+}
+
+@media print {
+  /* Show only the print-only rundown container and its children */
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-only-container, .print-only-container * {
+    visibility: visible;
+  }
+  
+  .print-only-container {
+    position: static !important;
+    width: 100% !important;
+    background: #fff !important;
+    color: #000 !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Make sure the main screen container is completely hidden */
+  .rundown-page > *:not(.print-only-container) {
+    display: none !important;
+  }
+
+  .day-block-print {
+    margin-bottom: 28px;
+    page-break-inside: avoid;
+  }
+
+  .day-header-print {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #000;
+    border-bottom: 2px solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  .print-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .print-item {
+    display: flex;
+    padding: 10px 0;
+    border-bottom: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+
+  .print-time-col {
+    width: 160px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .print-content-col {
+    flex: 1;
+  }
+
+  .print-item-title {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 4px;
+  }
+
+  .print-item-meta {
+    font-size: 0.85rem;
+    color: #333;
+  }
+}
+</style>
+
+<style>
+@media print {
+  .sidebar, .topbar, .sidebar-overlay, .collapse-btn, .mobile-toggle-btn, .floating-chat-container, .floating-chat-trigger, #floating-chat, .no-print {
+    display: none !important;
+  }
+
+  html, body, #app, .layout, .main-wrap, .main-content, .rundown-page {
+    background: #ffffff !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
 }
 </style>
